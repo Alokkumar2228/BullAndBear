@@ -9,6 +9,18 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  isSettled: {
+    type: Boolean,
+    default: false
+  },
+  settlementDate: {
+    type: Date,
+    default: null
+  },
+  inDematAccount: {
+    type: Boolean,
+    default: false
+  },
   name: {
     type: String,
     required: true
@@ -17,6 +29,18 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ["BUY", "SELL"],
     required: true
+  },
+  orderType: {
+    type: String,
+    enum: ["INTRADAY", "DELIVERY", "FNO"],
+    required: true,
+    default: "DELIVERY"
+  },
+  status: {
+    type: String,
+    enum: ["PENDING", "EXECUTED", "CANCELLED"],
+    required: true,
+    default: "PENDING"
   },
   quantity: {
     type: Number,

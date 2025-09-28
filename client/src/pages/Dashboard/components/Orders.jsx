@@ -8,47 +8,49 @@ import { useAuth } from "@clerk/clerk-react";
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  // const [filter, setFilter] = useState('all');
-  // const [sortBy, setSortBy] = useState('date');
-  // const [sortOrder, setSortOrder] = useState('desc');
-
-
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('all');
   const {getToken} = useAuth();
 
-  
-
-  // Simulate API call
-  const fetchOrderData = async () => {
-
+  const fetchOrderData = React.useCallback(async () => {
+    setError(null);
     const authToken = await getToken();
-    console.log(authToken);
+    
     try {
       setLoading(true);
-      const data = await axios.post(
-      "http://localhost:8000/api/order/find",
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-        }
-      }
-    );
-    setOrders(data.data)
-     console.log(data);
-
       
-      // setOrders(mockApiData);
+      // Add filter logic
+      let filterQuery = {};
+      if (filter !== 'all') {
+        filterQuery.orderType = filter;
+      }
+
+      const response = await axios.post(
+        "http://localhost:8000/api/order/find",
+        filterQuery,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          }
+        }
+      );
+
+      if (response.data) {
+        setOrders(response.data);
+      }
     } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch orders';
+      setError(errorMessage);
       console.error('Error fetching orders:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, getToken]);
 
   useEffect(() => {
     fetchOrderData();
-  }, []);
+  }, [fetchOrderData]); // Adding filter as dependency since we want to refetch when filter changes
 
   // const totalPortfolioValue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
   // const totalQuantity = orders.reduce((sum, order) => sum + order.quantity, 0);
@@ -79,11 +81,20 @@ export default function Orders() {
   //   }
   // };
 
-  const getModeColor = (mode) => {
-    switch (mode) {
-      case 'Market': return '#007bff';
-      case 'Limit': return '#28a745';
-      case 'Stop Loss': return '#dc3545';
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'EXECUTED': return '#28a745';
+      case 'PENDING': return '#ffc107';
+      case 'CANCELLED': return '#dc3545';
+      default: return '#6c757d';
+    }
+  };
+
+  const getOrderTypeColor = (orderType) => {
+    switch (orderType) {
+      case 'INTRADAY': return '#e91e63';
+      case 'DELIVERY': return '#2196f3';
+      case 'FNO': return '#ff9800';
       default: return '#6c757d';
     }
   };
@@ -113,6 +124,20 @@ export default function Orders() {
     </div>
     ) : (
        <div style={styles.container}>
+      {error && (
+        <div style={styles.errorMessage}>
+          {error}
+          <button 
+            onClick={() => {
+              setError(null);
+              fetchOrderData();
+            }}
+            style={{ marginLeft: '10px', textDecoration: 'underline' }}
+          >
+            Try Again
+          </button>
+        </div>
+      )}
      
       <div style={styles.header}>
         <div>
@@ -120,6 +145,18 @@ export default function Orders() {
           <p style={styles.subtitle}>Track and manage your stock orders</p>
         </div>
         <div style={styles.headerActions}>
+          <select 
+            style={styles.filterSelect} 
+            value={filter} 
+            onChange={(e) => {
+              setFilter(e.target.value);
+            }}
+          >
+            <option value="all">All Orders</option>
+            <option value="INTRADAY">Intraday</option>
+            <option value="DELIVERY">Delivery</option>
+            <option value="FNO">F&O</option>
+          </select>
           <button style={styles.refreshButton} onClick={fetchOrderData}>
             ↻ Refresh
           </button>
@@ -140,10 +177,10 @@ export default function Orders() {
             <div style={{...styles.headerCell, ...styles.stockColumn}}>Stock</div>
             <div style={{...styles.headerCell, ...styles.quantityColumn}}>Quantity</div>
             <div style={{...styles.headerCell, ...styles.dateColumn}}>Date</div>
-            <div style={{...styles.headerCell, ...styles.modeColumn}}>Order Type</div>
+            <div style={{...styles.headerCell, ...styles.orderTypeColumn}}>Order Type</div>
             <div style={{...styles.headerCell, ...styles.priceColumn}}>Price</div>
             <div style={{...styles.headerCell, ...styles.totalColumn}}>Total Value</div>
-            
+            <div style={{...styles.headerCell, ...styles.statusColumn}}>Status</div>
           </div>
 
        
@@ -160,9 +197,9 @@ export default function Orders() {
               <div style={{...styles.cell, ...styles.dateColumn}}>
                 <span style={styles.date}>{formatDate(order.placedAt)}</span>
               </div>
-              <div style={{...styles.cell, ...styles.modeColumn}}>
-                <span style={{...styles.modeBadge, backgroundColor: getModeColor(order.mode) + '15', color: getModeColor(order.mode)}}>
-                  {order.mode}
+              <div style={{...styles.cell, ...styles.orderTypeColumn}}>
+                <span style={{...styles.orderTypeBadge, backgroundColor: getOrderTypeColor(order.orderType) + '15', color: getOrderTypeColor(order.orderType)}}>
+                  {order.orderType || 'DELIVERY'}
                 </span>
               </div>
               <div style={{...styles.cell, ...styles.priceColumn}}>
@@ -171,7 +208,11 @@ export default function Orders() {
               <div style={{...styles.cell, ...styles.totalColumn}}>
                 <span style={styles.total}>{formatCurrency(order.totalAmount)}</span>
               </div>
-              
+              <div style={{...styles.cell, ...styles.statusColumn}}>
+                <span style={{...styles.statusBadge, backgroundColor: getStatusColor(order.status) + '15', color: getStatusColor(order.status)}}>
+                  {order.status || 'EXECUTED'}
+                </span>
+              </div>
             </div>
           ))}
           
@@ -227,6 +268,27 @@ const styles = {
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     transition: 'all 0.2s ease'
   },
+  filterSelect: {
+    padding: '10px 20px',
+    backgroundColor: 'white',
+    color: '#495057',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    borderRadius: '8px',
+    border: '1px solid #dee2e6',
+    outline: 'none',
+    marginRight: '10px'
+  },
+  errorMessage: {
+    color: '#dc3545',
+    backgroundColor: '#f8d7da',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    fontSize: '14px',
+    textAlign: 'center'
+  },
   statsContainer: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
@@ -277,7 +339,7 @@ const styles = {
   },
   tableHeaderRow: {
     display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr',
+    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr 1fr',
     padding: '16px 24px',
     backgroundColor: '#f8f9fa'
   },
@@ -290,7 +352,7 @@ const styles = {
   },
   tableRow: {
     display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr',
+    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr 1fr',
     padding: '20px 24px',
     alignItems: 'center',
     transition: 'background-color 0.2s ease'
@@ -302,9 +364,16 @@ const styles = {
   stockColumn: { justifySelf: 'start' },
   quantityColumn: { justifySelf: 'center' },
   dateColumn: { justifySelf: 'center' },
-  modeColumn: { justifySelf: 'center' },
+  orderTypeColumn: { justifySelf: 'center' },
   priceColumn: { justifySelf: 'end' },
   totalColumn: { justifySelf: 'end' },
+  statusColumn: { justifySelf: 'center' },
+  orderTypeBadge: {
+    padding: '4px 10px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
   stockInfo: {
     display: 'flex',
     flexDirection: 'column'
