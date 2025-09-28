@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 // import { VerticalGraph } from "./VerticalGraph";
@@ -12,11 +12,16 @@ const Holdings = () => {
   const [selectedStock , setSelectedStock] = useState(null);
   const {getToken} = useAuth();
 
-  const findOrder = async () => {
+  const findOrder = useCallback(async () => {
     try {
       const authToken = await getToken();
       const response = await axios.post(
-        "http://localhost:8000/api/order/find", {},
+        "http://localhost:8000/api/order/find", 
+        { 
+          orderType: "DELIVERY",
+          isSettled: true,
+          inDematAccount: true 
+        },
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -24,12 +29,12 @@ const Holdings = () => {
           }
         }
       );
-      console.log("Order created successfully:", response.data);
+      console.log("Delivery orders fetched successfully:", response.data);
       setAllHoldings(response.data);
     } catch (error) {
-      console.error("Error creating order:", error.response?.data || error.message);
+      console.error("Error fetching delivery orders:", error.response?.data || error.message);
     }
-  };
+  }, [getToken]);
 
   const handleSell = async (stock) => {
      SetIsSell(true);
@@ -38,7 +43,7 @@ const Holdings = () => {
 
   useEffect(() => {
     findOrder();
-  }, [])
+  }, [findOrder])
 
   const calInvestment = () => {
     let sum = 0;
@@ -58,7 +63,7 @@ const Holdings = () => {
   const profitPercentage = ((profit / calInvestment()) * 100).toFixed(2);
 
   return (
-    <>
+    <div className="dashboard-section">
       <h3 className="title">Holdings ({allHoldings.length})</h3>
 
       <div className="order-table">
@@ -187,7 +192,7 @@ const Holdings = () => {
         </div>
       </div>
       {/* <VerticalGraph data={data} /> */}
-    </>
+    </div>
   );
 };
 
