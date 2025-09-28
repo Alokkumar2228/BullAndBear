@@ -1,10 +1,15 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import './dashboard.css';
+import React, { useState } from "react";
+import {createOrder } from "@/pages/Dashboard/utils"
+import {useAuth} from "@clerk/clerk-react";
 
 const Funds = () => {
+  const {getToken} = useAuth();
+
+  const [showAddFundsModal, setShowAddFundsModal] = useState(false);
+  const [amount, setAmount] = useState('');
+
   // Sample data - replace with actual data from your API/state
-  const fundsData = {
+  const fundsData ={
     totalBalance: 7800.40,
     investedAmount: 3757.30,
     addedFunds: 4064.00,
@@ -14,16 +19,6 @@ const Funds = () => {
     totalGainLoss: 1543.10
   };
 
-  const equityDetails = {
-    openingBalance: 4043.10,
-    dayTradeMargin: 3736.40,
-    span: 0.00,
-    deliveryMargin: 0.00,
-    exposure: 0.00,
-    optionsPremium: 0.00,
-    collateralLiquid: 0.00,
-    collateralEquity: 0.00
-  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -33,279 +28,472 @@ const Funds = () => {
     }).format(amount);
   };
 
+  const handleAddFunds = async() => {
+     const authToken = await getToken();
+    const addAmount = parseFloat(amount);
+    if (addAmount && addAmount > 0 && addAmount <= 50000) {
+      await createOrder(addAmount, authToken);
+
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowAddFundsModal(false);
+    setAmount('');
+  };
   return (
-    <div className="funds-dashboard">
+    <div style={styles.container}>
       {/* Header Section */}
-      <div className="funds-header">
-        <div className="funds-title">
-          <h2>Funds & Portfolio</h2>
-          <p className="subtitle">Manage your trading funds and view portfolio summary</p>
+      <div style={styles.header}>
+        <div style={styles.titleSection}>
+          <h2 style={styles.title}>Funds & Portfolio</h2>
+          <p style={styles.subtitle}>Manage your trading funds and view portfolio summary</p>
         </div>
-        <div className="funds-actions">
-          <Link to="/add-funds" className="btn btn-primary">
+        <div style={styles.actionsSection}>
+          <button 
+            onClick={() => setShowAddFundsModal(true)}
+            style={styles.primaryBtn}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             Add Funds
-          </Link>
-          <Link to="/withdraw" className="btn btn-secondary">
+          </button>
+          <button style={styles.secondaryBtn}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             Withdraw
-          </Link>
+          </button>
         </div>
       </div>
 
       {/* Overview Cards */}
-      <div className="funds-overview">
-        <div className="overview-card balance-card">
-          <div className="card-header">
-            <h3>Total Balance</h3>
-            <div className="balance-trend positive">
+      <div style={styles.overviewGrid}>
+        <div style={{...styles.overviewCard, ...styles.balanceCard}}>
+          <div style={styles.cardHeader}>
+            <h3 style={styles.cardTitle}>Total Balance</h3>
+            <div style={styles.positiveTrend}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               +2.4%
             </div>
           </div>
-          <div className="card-content">
-            <div className="amount-large">{formatCurrency(fundsData.totalBalance)}</div>
-            <div className="gain-loss positive">
+          <div style={styles.cardContent}>
+            <div style={styles.amountLarge}>{formatCurrency(fundsData.totalBalance)}</div>
+            <div style={styles.gainLoss}>
               Today's P&L: +{formatCurrency(fundsData.todaysGainLoss)}
             </div>
           </div>
         </div>
 
-        <div className="overview-card">
-          <div className="card-header">
-            <h4>Invested Amount</h4>
+        <div style={styles.overviewCard}>
+          <div style={styles.cardHeader}>
+            <h4 style={styles.cardTitle}>Invested Amount</h4>
           </div>
-          <div className="card-content">
-            <div className="amount">{formatCurrency(fundsData.investedAmount)}</div>
-            <div className="description">Currently in positions</div>
-          </div>
-        </div>
-
-        <div className="overview-card">
-          <div className="card-header">
-            <h4>Available Cash</h4>
-          </div>
-          <div className="card-content">
-            <div className="amount">{formatCurrency(fundsData.availableCash)}</div>
-            <div className="description">Ready to invest</div>
+          <div style={styles.cardContent}>
+            <div style={styles.amount}>{formatCurrency(fundsData.investedAmount)}</div>
+            <div style={styles.description}>Currently in positions</div>
           </div>
         </div>
 
-        <div className="overview-card">
-          <div className="card-header">
-            <h4>Total Returns</h4>
+        <div style={styles.overviewCard}>
+          <div style={styles.cardHeader}>
+            <h4 style={styles.cardTitle}>Available Cash</h4>
           </div>
-          <div className="card-content">
-            <div className="amount positive">+{formatCurrency(fundsData.totalGainLoss)}</div>
-            <div className="description">Overall profit/loss</div>
+          <div style={styles.cardContent}>
+            <div style={styles.amount}>{formatCurrency(fundsData.availableCash)}</div>
+            <div style={styles.description}>Ready to invest</div>
+          </div>
+        </div>
+
+        <div style={styles.overviewCard}>
+          <div style={styles.cardHeader}>
+            <h4 style={styles.cardTitle}>Total Returns</h4>
+          </div>
+          <div style={styles.cardContent}>
+            <div style={{...styles.amount, color: '#10b981'}}>+{formatCurrency(fundsData.totalGainLoss)}</div>
+            <div style={styles.description}>Overall profit/loss</div>
           </div>
         </div>
       </div>
 
       {/* Funds Flow Summary */}
-      <div className="funds-flow">
-        <h3>Funds Summary</h3>
-        <div className="flow-cards">
-          <div className="flow-card funds-added">
-            <div className="flow-icon">
+      <div style={styles.fundsFlow}>
+        <h3 style={styles.sectionTitle}>Funds Summary</h3>
+        <div style={styles.flowCards}>
+          <div style={styles.flowCard}>
+            <div style={styles.flowIcon}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div className="flow-content">
-              <div className="flow-label">Funds Added</div>
-              <div className="flow-amount">{formatCurrency(fundsData.addedFunds)}</div>
-              <div className="flow-note">Total deposits</div>
+            <div style={styles.flowContent}>
+              <div style={styles.flowLabel}>Funds Added</div>
+              <div style={styles.flowAmount}>{formatCurrency(fundsData.addedFunds)}</div>
+              <div style={styles.flowNote}>Total deposits</div>
             </div>
           </div>
 
-          <div className="flow-card funds-withdrawn">
-            <div className="flow-icon">
+          <div style={styles.flowCard}>
+            <div style={styles.flowIcon}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div className="flow-content">
-              <div className="flow-label">Funds Withdrawn</div>
-              <div className="flow-amount">{formatCurrency(fundsData.withdrawnFunds)}</div>
-              <div className="flow-note">Total withdrawals</div>
+            <div style={styles.flowContent}>
+              <div style={styles.flowLabel}>Funds Withdrawn</div>
+              <div style={styles.flowAmount}>{formatCurrency(fundsData.withdrawnFunds)}</div>
+              <div style={styles.flowNote}>Total withdrawals</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Detailed Breakdown */}
-      <div className="funds-details">
-        <div className="details-section">
-          <div className="section-header">
-            <h3>Equity Account Details</h3>
-            <span className="account-status active">Active</span>
-          </div>
-          
-          <div className="details-grid">
-            <div className="detail-group">
-              <h4>Margins</h4>
-              <div className="detail-items">
-                <div className="detail-item">
-                  <span className="label">Available Margin</span>
-                  <span className="value highlighted">{formatCurrency(fundsData.availableCash)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Used Margin</span>
-                  <span className="value">{formatCurrency(fundsData.investedAmount)}</span>
-                </div>
-              </div>
+      {/* Add Funds Modal */}
+      {showAddFundsModal && (
+        <div style={styles.modalOverlay} onClick={handleCloseModal}>
+          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Add Funds</h3>
+              <button 
+                onClick={handleCloseModal}
+                style={styles.closeButton}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
             </div>
-
-            <div className="detail-group">
-              <h4>Account Balance</h4>
-              <div className="detail-items">
-                <div className="detail-item">
-                  <span className="label">Opening Balance</span>
-                  <span className="value">{formatCurrency(equityDetails.openingBalance)}</span>
+            <div style={styles.modalBody}>
+              <div style={styles.inputGroup}>
+                <label style={styles.inputLabel}>Enter Amount</label>
+                <input
+                  type="number"
+                  placeholder="₹ 0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  style={styles.amountInput}
+                  max="50000"
+                  autoFocus
+                />
+                <div style={styles.inputHelperText}>
+                  Maximum amount: ₹50,000 per transaction
                 </div>
-                <div className="detail-item">
-                  <span className="label">Day Trade Margin</span>
-                  <span className="value">{formatCurrency(equityDetails.dayTradeMargin)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Payin</span>
-                  <span className="value">{formatCurrency(fundsData.addedFunds)}</span>
-                </div>
+                {amount && parseFloat(amount) > 50000 && (
+                  <div style={styles.errorText}>
+                    Amount cannot exceed ₹50,000
+                  </div>
+                )}
               </div>
-            </div>
-
-            <div className="detail-group">
-              <h4>Risk Management</h4>
-              <div className="detail-items">
-                <div className="detail-item">
-                  <span className="label">SPAN</span>
-                  <span className="value">{formatCurrency(equityDetails.span)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Delivery Margin</span>
-                  <span className="value">{formatCurrency(equityDetails.deliveryMargin)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Exposure</span>
-                  <span className="value">{formatCurrency(equityDetails.exposure)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Options Premium</span>
-                  <span className="value">{formatCurrency(equityDetails.optionsPremium)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="detail-group">
-              <h4>Collateral</h4>
-              <div className="detail-items">
-                <div className="detail-item">
-                  <span className="label">Liquid Funds</span>
-                  <span className="value">{formatCurrency(equityDetails.collateralLiquid)}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Equity Collateral</span>
-                  <span className="value">{formatCurrency(equityDetails.collateralEquity)}</span>
-                </div>
-                <div className="detail-item total">
-                  <span className="label">Total Collateral</span>
-                  <span className="value">{formatCurrency(equityDetails.collateralLiquid + equityDetails.collateralEquity)}</span>
-                </div>
+              <div style={styles.modalActions}>
+                <button 
+                  onClick={handleCloseModal}
+                  style={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleAddFunds}
+                  style={styles.addButton}
+                  disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > 50000}
+                >
+                  Add Amount
+                </button>
               </div>
             </div>
           </div>
         </div>
-
-        <div className="details-section">
-          <div className="section-header">
-            <h3>Commodity Account</h3>
-            <span className="account-status inactive">Inactive</span>
-          </div>
-          
-          <div className="commodity-cta">
-            <div className="cta-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div className="cta-content">
-              <h4>Start Commodity Trading</h4>
-              <p>Trade in agricultural commodities, metals, and energy with dedicated commodity account.</p>
-              <Link to="/open-commodity" className="btn btn-outline">
-                Open Commodity Account
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="quick-actions">
-        <div className="actions-header">
-          <h3>Quick Actions</h3>
-        </div>
-        <div className="actions-grid">
-          <Link to="/funds-statement" className="action-card">
-            <div className="action-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2"/>
-                <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </div>
-            <div className="action-content">
-              <h4>Funds Statement</h4>
-              <p>View detailed transaction history</p>
-            </div>
-          </Link>
-
-          <Link to="/auto-invest" className="action-card">
-            <div className="action-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-                <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </div>
-            <div className="action-content">
-              <h4>Auto Invest</h4>
-              <p>Set up automatic investments</p>
-            </div>
-          </Link>
-
-          <Link to="/bank-details" className="action-card">
-            <div className="action-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </div>
-            <div className="action-content">
-              <h4>Bank Details</h4>
-              <p>Manage linked bank accounts</p>
-            </div>
-          </Link>
-
-          <Link to="/tax-reports" className="action-card">
-            <div className="action-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4M9 11V9a2 2 0 0 1 2-2v0a2 2 0 0 1 2 2v2M9 11h6" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </div>
-            <div className="action-content">
-              <h4>Tax Reports</h4>
-              <p>Download tax computation reports</p>
-            </div>
-          </Link>
-        </div>
-      </div>
+      )}
     </div>
   );
+};
+
+const styles = {
+  container: {
+    padding: '24px',
+    backgroundColor: '#f8fafc',
+    minHeight: '100vh',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '32px',
+    flexWrap: 'wrap',
+    gap: '16px'
+  },
+  titleSection: {
+    flex: 1
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: '700',
+    color: '#1e293b',
+    margin: '0 0 4px 0'
+  },
+  subtitle: {
+    color: '#64748b',
+    margin: 0,
+    fontSize: '14px'
+  },
+  actionsSection: {
+    display: 'flex',
+    gap: '12px'
+  },
+  primaryBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 20px',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    textDecoration: 'none'
+  },
+  secondaryBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 20px',
+    backgroundColor: 'white',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    textDecoration: 'none'
+  },
+  overviewGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '20px',
+    marginBottom: '32px'
+  },
+  overviewCard: {
+    backgroundColor: 'white',
+    padding: '24px',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0'
+  },
+  balanceCard: {
+    background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+    color: 'white'
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px'
+  },
+  cardTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    margin: 0,
+    color: 'inherit'
+  },
+  positiveTrend: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: '4px 8px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  cardContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  amountLarge: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: 'inherit'
+  },
+  amount: {
+    fontSize: '24px',
+    fontWeight: '700',
+    color: '#1e293b'
+  },
+  gainLoss: {
+    fontSize: '14px',
+    opacity: 0.9
+  },
+  description: {
+    fontSize: '14px',
+    color: '#64748b'
+  },
+  fundsFlow: {
+    marginBottom: '32px'
+  },
+  sectionTitle: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: '20px'
+  },
+  flowCards: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '20px'
+  },
+  flowCard: {
+    backgroundColor: 'white',
+    padding: '24px',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  },
+  flowIcon: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '8px',
+    backgroundColor: '#dbeafe',
+    color: '#3b82f6',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  flowContent: {
+    flex: 1
+  },
+  flowLabel: {
+    fontSize: '14px',
+    color: '#64748b',
+    marginBottom: '4px'
+  },
+  flowAmount: {
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: '2px'
+  },
+  flowNote: {
+    fontSize: '12px',
+    color: '#9ca3af'
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    width: '90%',
+    maxWidth: '400px',
+    overflow: 'hidden',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+  },
+  modalHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '24px 24px 16px',
+    borderBottom: '1px solid #f1f5f9'
+  },
+  modalTitle: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#1e293b',
+    margin: 0
+  },
+  closeButton: {
+    border: 'none',
+    background: 'none',
+    cursor: 'pointer',
+    padding: '4px',
+    borderRadius: '6px',
+    color: '#64748b',
+    transition: 'all 0.2s ease'
+  },
+  modalBody: {
+    padding: '16px 24px 24px'
+  },
+  inputGroup: {
+    marginBottom: '24px'
+  },
+  inputLabel: {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '8px'
+  },
+  amountInput: {
+    width: '100%',
+    padding: '16px',
+    border: '2px solid #e2e8f0',
+    borderRadius: '8px',
+    fontSize: '18px',
+    fontWeight: '500',
+    outline: 'none',
+    transition: 'border-color 0.2s ease',
+    backgroundColor: '#f8fafc',
+    boxSizing: 'border-box'
+  },
+  modalActions: {
+    display: 'flex',
+    gap: '12px'
+  },
+  cancelButton: {
+    flex: 1,
+    padding: '12px 16px',
+    border: '1px solid #d1d5db',
+    backgroundColor: 'white',
+    color: '#374151',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  addButton: {
+    flex: 1,
+    padding: '12px 16px',
+    border: 'none',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    opacity: 1
+  },
+  inputHelperText: {
+    fontSize: '12px',
+    color: '#64748b',
+    marginTop: '6px'
+  },
+  errorText: {
+    fontSize: '12px',
+    color: '#ef4444',
+    marginTop: '6px',
+    fontWeight: '500'
+  }
 };
 
 export default Funds;

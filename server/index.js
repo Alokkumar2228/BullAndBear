@@ -8,6 +8,7 @@ import router from './routes/Routes.js';
 import yahooFinance from 'yahoo-finance2';
 import authRouter from './routes/authRoutes.js';
 import client from './utils/redisclient.js';
+import paymentRouter from './routes/paymentRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -73,8 +74,13 @@ app.get("/api/stocks", async (req, res) => {
 // ✅ API routes
 app.use('/api', router);
 
-// ✅ Webhook route (use raw parser ONLY here)
+//Payment
+app.use('/api/payment',paymentRouter)
+//auth webhook
 app.use('/webhook', express.raw({ type: "application/json" }), authRouter);
+//payment webhook
+app.use('/api/payment/webhook', express.raw({ type: "application/json" }), paymentRouter);
+
 
 
 app.listen(PORT, () => {
