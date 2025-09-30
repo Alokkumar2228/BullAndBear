@@ -19,15 +19,10 @@ export default function Orders() {
     try {
       setLoading(true);
       
-      // Add filter logic
-      let filterQuery = {};
-      if (filter !== 'all') {
-        filterQuery.orderType = filter;
-      }
-
+      // Fetch all orders first
       const response = await axios.post(
         "http://localhost:8000/api/order/find",
-        filterQuery,
+        {},
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -36,8 +31,23 @@ export default function Orders() {
         }
       );
 
-      if (response.data) {
-        setOrders(response.data);
+      // Filter orders on client side based on selected filter
+
+      
+      console.log('Current filter:', filter);
+      console.log('All orders:', response.data);
+      
+      // Single state update with filtered results
+      if (filter !== 'all' && response.data) {
+        const filteredOrders = response.data.filter(order => {
+          console.log('Checking order:', order);
+          return order.orderType === filter;
+        });
+        console.log('Filtered orders:', filteredOrders);
+        setOrders(filteredOrders);
+      } else {
+        console.log('Setting all orders');
+        setOrders(response.data || []);
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch orders';
@@ -111,18 +121,6 @@ export default function Orders() {
   }
 
   return (
-
-    
-    orders.length === 0 ? (
-      <div className="orders">
-      <div className="no-orders">
-        <p>You haven't placed any orders today</p>
-        <Link to={"/"} className="btn">
-          Get started
-        </Link>
-      </div>
-    </div>
-    ) : (
        <div style={styles.container}>
       {error && (
         <div style={styles.errorMessage}>
@@ -149,6 +147,7 @@ export default function Orders() {
             style={styles.filterSelect} 
             value={filter} 
             onChange={(e) => {
+              console.log('Filter changed to:', e.target.value);
               setFilter(e.target.value);
             }}
           >
@@ -171,60 +170,69 @@ export default function Orders() {
           <h2 style={styles.tableTitle}>Recent Orders</h2>
         </div>
         
-        <div style={styles.table}>
-         
-          <div style={styles.tableHeaderRow}>
-            <div style={{...styles.headerCell, ...styles.stockColumn}}>Stock</div>
-            <div style={{...styles.headerCell, ...styles.quantityColumn}}>Quantity</div>
-            <div style={{...styles.headerCell, ...styles.dateColumn}}>Date</div>
-            <div style={{...styles.headerCell, ...styles.orderTypeColumn}}>Order Type</div>
-            <div style={{...styles.headerCell, ...styles.priceColumn}}>Price</div>
-            <div style={{...styles.headerCell, ...styles.totalColumn}}>Total Value</div>
-            <div style={{...styles.headerCell, ...styles.statusColumn}}>Status</div>
+        {orders.length === 0 ? (
+          <div style={{ padding: '32px', textAlign: 'center', color: '#6c757d' }}>
+            <div style={{ fontSize: '16px', marginBottom: '12px' }}>
+              {filter !== 'all' ? 'No orders match this filter.' : "You haven't placed any orders yet."}
+            </div>
+            {filter !== 'all' ? (
+              <button
+                style={styles.refreshButton}
+                onClick={() => setFilter('all')}
+              >
+                Clear filter
+              </button>
+            ) : (
+              <Link to={"/"} className="btn">Get started</Link>
+            )}
           </div>
+        ) : (
+          <div style={styles.table}>
+            <div style={styles.tableHeaderRow}>
+              <div style={{...styles.headerCell, ...styles.stockColumn}}>Stock</div>
+              <div style={{...styles.headerCell, ...styles.quantityColumn}}>Quantity</div>
+              <div style={{...styles.headerCell, ...styles.dateColumn}}>Date</div>
+              <div style={{...styles.headerCell, ...styles.orderTypeColumn}}>Order Type</div>
+              <div style={{...styles.headerCell, ...styles.priceColumn}}>Price</div>
+              <div style={{...styles.headerCell, ...styles.totalColumn}}>Total Value</div>
+              <div style={{...styles.headerCell, ...styles.statusColumn}}>Status</div>
+            </div>
 
-       
-          {orders.map((order, index) => (
-            <div key={order.id} style={{...styles.tableRow, backgroundColor: index % 2 === 0 ? '#fafafa' : 'white'}}>
-              <div style={{...styles.cell, ...styles.stockColumn}}>
-                <div style={styles.stockInfo}>
-                  <div style={styles.stockName}>{order.symbol}</div>
+            {orders.map((order, index) => (
+              <div key={order.id} style={{...styles.tableRow, backgroundColor: index % 2 === 0 ? '#fafafa' : 'white'}}>
+                <div style={{...styles.cell, ...styles.stockColumn}}>
+                  <div style={styles.stockInfo}>
+                    <div style={styles.stockName}>{order.symbol}</div>
+                  </div>
+                </div>
+                <div style={{...styles.cell, ...styles.quantityColumn}}>
+                  <span style={styles.quantity}>{order.quantity.toLocaleString()}</span>
+                </div>
+                <div style={{...styles.cell, ...styles.dateColumn}}>
+                  <span style={styles.date}>{formatDate(order.placedAt)}</span>
+                </div>
+                <div style={{...styles.cell, ...styles.orderTypeColumn}}>
+                  <span style={{...styles.orderTypeBadge, backgroundColor: getOrderTypeColor(order.orderType) + '15', color: getOrderTypeColor(order.orderType)}}>
+                    {order.orderType || 'DELIVERY'}
+                  </span>
+                </div>
+                <div style={{...styles.cell, ...styles.priceColumn}}>
+                  <span style={styles.price}>{formatCurrency(order.purchasePrice)}</span>
+                </div>
+                <div style={{...styles.cell, ...styles.totalColumn}}>
+                  <span style={styles.total}>{formatCurrency(order.totalAmount)}</span>
+                </div>
+                <div style={{...styles.cell, ...styles.statusColumn}}>
+                  <span style={{...styles.statusBadge, backgroundColor: getStatusColor(order.status) + '15', color: getStatusColor(order.status)}}>
+                    {order.status || 'EXECUTED'}
+                  </span>
                 </div>
               </div>
-              <div style={{...styles.cell, ...styles.quantityColumn}}>
-                <span style={styles.quantity}>{order.quantity.toLocaleString()}</span>
-              </div>
-              <div style={{...styles.cell, ...styles.dateColumn}}>
-                <span style={styles.date}>{formatDate(order.placedAt)}</span>
-              </div>
-              <div style={{...styles.cell, ...styles.orderTypeColumn}}>
-                <span style={{...styles.orderTypeBadge, backgroundColor: getOrderTypeColor(order.orderType) + '15', color: getOrderTypeColor(order.orderType)}}>
-                  {order.orderType || 'DELIVERY'}
-                </span>
-              </div>
-              <div style={{...styles.cell, ...styles.priceColumn}}>
-                <span style={styles.price}>{formatCurrency(order.purchasePrice)}</span>
-              </div>
-              <div style={{...styles.cell, ...styles.totalColumn}}>
-                <span style={styles.total}>{formatCurrency(order.totalAmount)}</span>
-              </div>
-              <div style={{...styles.cell, ...styles.statusColumn}}>
-                <span style={{...styles.statusBadge, backgroundColor: getStatusColor(order.status) + '15', color: getStatusColor(order.status)}}>
-                  {order.status || 'EXECUTED'}
-                </span>
-              </div>
-            </div>
-          ))}
-          
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
-    )
-      
-
-    
-  
-   
   );
 }
 

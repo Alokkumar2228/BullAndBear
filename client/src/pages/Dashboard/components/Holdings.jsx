@@ -7,20 +7,28 @@ import './dashboard.css'
 
 const Holdings = () => {
   const [allHoldings, setAllHoldings] = useState([]);
-  const [isSell , SetIsSell] = useState(false);
-  const [quantity , setQuantity] = useState(0);
-  const [selectedStock , setSelectedStock] = useState(null);
+  const [isSell, SetIsSell] = useState(false);
+  const [quantity, setQuantity] = useState(0);
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const {getToken} = useAuth();
 
   const findOrder = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const authToken = await getToken();
+      console.log('Auth token:', authToken);
+
+      // First try with minimal filters to verify data retrieval
       const response = await axios.post(
         "http://localhost:8000/api/order/find", 
         { 
-          orderType: "DELIVERY",
-          isSettled: true,
-          inDematAccount: true 
+          orderType: "DELIVERY"
+          // Temporarily removed other filters for testing
+          // isSettled: true,
+          // inDematAccount: true 
         },
         {
           headers: {
@@ -32,7 +40,15 @@ const Holdings = () => {
       console.log("Delivery orders fetched successfully:", response.data);
       setAllHoldings(response.data);
     } catch (error) {
-      console.error("Error fetching delivery orders:", error.response?.data || error.message);
+      console.error('Error fetching delivery orders:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      setAllHoldings([]);
+      setError(error.response?.data?.message || error.message || 'Failed to fetch holdings');
+    } finally {
+      setIsLoading(false);
     }
   }, [getToken]);
 
@@ -66,7 +82,18 @@ const Holdings = () => {
     <div className="dashboard-section">
       <h3 className="title">Holdings ({allHoldings.length})</h3>
 
-      <div className="order-table">
+      {isLoading && (
+        <div className="loading-spinner">Loading...</div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <div className="order-table">
         <table className="holdings-table">
           <thead>
             <tr>
@@ -115,7 +142,7 @@ const Holdings = () => {
 
         </table>
       </div>
-
+      )}  
       {isSell && selectedStock && (
         <div className="sell-form-overlay">
           <div className="sell-form-container" onClick={(e) => e.stopPropagation()}>

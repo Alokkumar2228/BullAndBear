@@ -1,7 +1,13 @@
 
 import Order from '../models/OrderModel.js';
-import Cookies from 'cookies';
-import jwt from 'jsonwebtoken';
+
+// Logging utility
+const isDevelopment = process.env.NODE_ENV === 'development';
+const logger = {
+  debug: (...args) => isDevelopment && console.log(...args),
+  error: (...args) => console.error(...args),
+  info: (...args) => isDevelopment && console.info(...args)
+};
 
 // Helper function to calculate settlement date (T+1)
 const calculateSettlementDate = () => {
@@ -27,35 +33,11 @@ const isWithinMarketHours = () => {
 
 // Create Order
 export const createOrder = async (req, res) => {
-  const publicKey = process.env.CLERK_PEM_PUBLIC_KEY;
-  if (!publicKey) {
-    return res.status(500).json({ error: 'Clerk public key not set in environment' });
-  }
-
-  const cookies = new Cookies(req, res);
-  const tokenFromCookie = cookies.get('__session');
-  const tokenFromHeader = req.headers.authorization
-    ? req.headers.authorization.split(' ')[1]
-    : null;
-
-  const token = tokenFromCookie || tokenFromHeader;
-  if (!token) return res.status(401).json({ error: 'Not signed in' });
-
-import Order from "../models/OrderModel.js";
-
-
-// ✅ Create Order
-  export const createOrder = async (req, res) => {
   try {
-
-    const options = { algorithms: ['RS256'] };
-    const decoded = jwt.verify(token, publicKey, options);
-    const currentTime = Math.floor(Date.now() / 1000);
-    if (decoded.exp && decoded.exp < currentTime) throw new Error('Token expired');
-    if (decoded.nbf && decoded.nbf > currentTime) throw new Error('Token not valid yet');
-
-    const userId = decoded.sub;
-    if (!userId) return res.status(401).json({ error: "Invalid token: missing user ID" });
+    const userId = req.user?.id; // comes from clerkAuth middleware
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+    }
 
     const { 
       symbol, 
@@ -66,36 +48,29 @@ import Order from "../models/OrderModel.js";
       name, 
       changePercent,
       orderType = "DELIVERY",
-      status = "PENDING"
+      status = "PENDING",
+      totalAmount
     } = req.body;
 
-    if (!symbol || !mode || !quantity || !purchasePrice || !actualPrice || !name || !changePercent) {
 
-    const userId = req.user.id; // comes from clerkAuth middleware
-    const {
-      symbol,
-      mode,
-      quantity,
-      purchasePrice,
-      actualPrice,
-      name,
-      changePercent,
-    } = req.body;
-
-    if (
-      !symbol ||
-      !mode ||
-      !quantity ||
-      !purchasePrice ||
-      !actualPrice ||
-      !name ||
-      !changePercent  
-    ) {
-
-      return res.status(400).json({ message: "All fields are required" });
+    if (!symbol || !mode || !quantity || !purchasePrice || !actualPrice || !name || !changePercent || !totalAmount) {
+      return res.status(400).json({ 
+        message: "All fields are required",
+        missing: Object.entries({ symbol, mode, quantity, purchasePrice, actualPrice, name, changePercent, totalAmount })
+          .filter(([_, value]) => value == null || value === undefined || value === '')
+          .map(([key]) => key)
+      });
     }
 
-    const totalAmount = quantity * purchasePrice;
+    // Verify totalAmount calculation
+    const calculatedTotal = quantity * purchasePrice;
+    if (Math.abs(calculatedTotal - totalAmount) > 0.01) { // Allow for small floating point differences
+      return res.status(400).json({ 
+        message: "Invalid total amount",
+        expected: calculatedTotal,
+        received: totalAmount
+      });
+    }
 
 
     // Additional validations for order types
@@ -104,9 +79,6 @@ import Order from "../models/OrderModel.js";
     }
 
     const newOrder = new Order({
-
-    const newOrder = new Order({  
-
       userId,
       symbol,
       name,
@@ -135,20 +107,24 @@ import Order from "../models/OrderModel.js";
   }
 };
 
-// ✅ Get Orders by User ID
-  export const getOrderById = async (req, res) => {
+// Get Orders by User ID
+export const getOrderById = async (req, res) => {
   try {
+    console.log('Request user object:', req.user);
+    console.log('Request headers:', req.headers);
+    
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ 
+        message: "Unauthorized: No user ID found",
+        debug: { 
+          user: req.user,
+          headers: req.headers
+        }
+      });
+    }
 
-    const options = { algorithms: ['RS256'] };
-    const decoded = jwt.verify(token, publicKey, options);
-    const currentTime = Math.floor(Date.now() / 1000);
-    if (decoded.exp && decoded.exp < currentTime) throw new Error('Token expired');
-    if (decoded.nbf && decoded.nbf > currentTime) throw new Error('Token not valid yet');
-
-    const userId = decoded.sub;
-    if (!userId) return res.status(401).json({ error: "Invalid token: missing user ID" });
-
-    const { orderType } = req.body;
+    const { orderType, isSettled, inDematAccount } = req.body; // Changed to req.body as we're using POST
     let query = { userId };
 
     // Filter by orderType if provided
@@ -160,18 +136,24 @@ import Order from "../models/OrderModel.js";
       }
     }
 
-    const orders = await Order.find(query);
-    if (!orders || orders.length === 0) return res.status(404).json({ message: "Order not found" });
-
-    const userId = req.user.id; // from middleware
-    const orders = await Order.find({ userId });
-
-
-    if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: "Order not found" });
+    // Add settlement and demat account filters if provided
+    if (isSettled !== undefined) {
+      query.isSettled = isSettled;
+    }
+    if (inDematAccount !== undefined) {
+      query.inDematAccount = inDematAccount;
     }
 
-      res.status(200).json(orders);
+    console.log("Fetching orders with query:", query);
+    const orders = await Order.find(query);
+
+    // Return empty array instead of 404 when no orders found
+    if (!orders || orders.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    console.log(`Found ${orders.length} orders for user ${userId}`);
+    res.status(200).json(orders);
   } catch (err) {
     res
       .status(500)
@@ -182,13 +164,18 @@ import Order from "../models/OrderModel.js";
 // Update Order Status
 export const updateOrderStatus = async (req, res) => {
   try {
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+    }
+
     const { orderId, status } = req.body;
     if (!orderId || !status) {
       return res.status(400).json({ message: "Order ID and status are required" });
     }
 
-    const updatedOrder = await Order.findByIdAndUpdate(
-      orderId,
+    const updatedOrder = await Order.findOneAndUpdate(
+      { _id: orderId, userId }, // Ensure user owns the order
       { 
         status,
         executedAt: status === 'EXECUTED' ? new Date() : null
@@ -209,6 +196,11 @@ export const updateOrderStatus = async (req, res) => {
 // Square off intraday positions
 export const squareOffIntraday = async (req, res) => {
   try {
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+    }
+
     const currentTime = new Date();
     const hours = currentTime.getHours();
     const minutes = currentTime.getMinutes();
@@ -218,8 +210,9 @@ export const squareOffIntraday = async (req, res) => {
       return res.status(400).json({ message: "Square-off can only be done near market close" });
     }
 
-    // Find all open intraday positions
+    // Find all open intraday positions for this user
     const intradayPositions = await Order.find({
+      userId,
       orderType: "INTRADAY",
       status: "EXECUTED",
       mode: "BUY" // Square off only buy positions
@@ -256,15 +249,25 @@ export const squareOffIntraday = async (req, res) => {
 // Process delivery settlements (T+1)
 export const processSettlements = async (req, res) => {
   try {
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Find all unsettled delivery orders due for settlement
+    // Find all unsettled delivery orders due for settlement for this user
     const settlingOrders = await Order.find({
+      userId,
       orderType: "DELIVERY",
       isSettled: false,
       settlementDate: { $lte: today }
     });
+
+    if (settlingOrders.length === 0) {
+      return res.status(404).json({ message: "No orders pending settlement" });
+    }
 
     const settlementPromises = settlingOrders.map(async (order) => {
       order.isSettled = true;
@@ -280,21 +283,28 @@ export const processSettlements = async (req, res) => {
 };
 
 // Delete Order
-
-// ✅ Delete Order
-
 export const deleteOrder = async (req, res) => {
   try {
-    const deletedOrder = await Order.findByIdAndDelete(req.params.id);
-
-    if (!deletedOrder) {
-      return res.status(404).json({ message: "Order not found" });
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
     }
 
+    const orderId = req.params.id;
+    
+    const deletedOrder = await Order.findOneAndDelete({
+      _id: orderId,
+      userId // Ensure user owns the order
+    });
+
+    if (!deletedOrder) {
+      return res.status(404).json({ message: "Order not found or unauthorized" });
+    }
+
+    console.log(`Order ${orderId} deleted successfully by user ${userId}`);
     res.status(200).json({ message: "Order deleted successfully" });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error deleting order", error: err.message });
+    console.error("Delete order error:", err);
+    res.status(500).json({ message: "Error deleting order", error: err.message });
   }
 };
