@@ -18,12 +18,12 @@ import {
 // import { DoughnutChart } from "./DoughnoutChart";
 
 
-const WatchList = ({user}) => {
+const WatchList = () => {
 
   const { watchlist } = useContext(ContextApi);
 
+  /* Commented out chart data until DoughnutChart component is used
   const labels = watchlist.map((subArray) => subArray["name"]);
-
   const data = {
     labels,
     datasets: [
@@ -50,6 +50,7 @@ const WatchList = ({user}) => {
       },
     ],
   };
+  */
 
   
   return (
@@ -81,11 +82,11 @@ export default WatchList;
 const WatchListItem = ({ stock }) => {
   const [showWatchlistActions, setShowWatchlistActions] = useState(false);
 
-  const handleMouseEnter = (e) => {
+  const handleMouseEnter = () => {
     setShowWatchlistActions(true);
   };
 
-  const handleMouseLeave = (e) => {
+  const handleMouseLeave = () => {
     setShowWatchlistActions(false);
   };
 
@@ -135,7 +136,7 @@ const WatchListActions = ({ uid , data }) => {
         >
           <button className="sell">Sell</button>
         </Tooltip>
-        <Tooltip
+        <Tooltip    
           title="Analytics (A)"
           placement="top"
           arrow

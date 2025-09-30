@@ -57,4 +57,3 @@ export const createOrder = async (amount, authToken) => {
     alert("Failed to create order");
   }
 };
-

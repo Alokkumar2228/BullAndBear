@@ -4,7 +4,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import connectDB from './db/db.js';
-import router from './routes/Routes.js';
+import OrderRouter from './routes/OrderRoutes.js';
 import yahooFinance from 'yahoo-finance2';
 import authRouter from './routes/authRoutes.js';
 import client from './utils/redisclient.js';
@@ -71,15 +71,18 @@ app.get("/api/stocks", async (req, res) => {
   }
 });
 
-// ✅ API routes
-app.use('/api', router);
-
-//Payment
-app.use('/api/payment',paymentRouter)
-//auth webhook
-app.use('/webhook', express.raw({ type: "application/json" }), authRouter);
-//payment webhook
+// Configure routes with proper order (most specific first)
+// Payment webhook (must be before regular payment routes)
 app.use('/api/payment/webhook', express.raw({ type: "application/json" }), paymentRouter);
+
+// Payment API routes
+app.use('/api/payment', paymentRouter);
+
+// Auth webhook
+app.use('/webhook', express.raw({ type: "application/json" }), authRouter);
+
+// General API routes
+app.use('/api/order', OrderRouter);
 
 
 
