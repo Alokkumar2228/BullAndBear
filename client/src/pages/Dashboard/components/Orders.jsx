@@ -62,9 +62,6 @@ export default function Orders() {
     fetchOrderData();
   }, [fetchOrderData]); // Adding filter as dependency since we want to refetch when filter changes
 
-  // const totalPortfolioValue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-  // const totalQuantity = orders.reduce((sum, order) => sum + order.quantity, 0);
-  // const executedOrders = orders.filter(order => order.status === 'Executed').length;
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -82,14 +79,7 @@ export default function Orders() {
     });
   };
 
-  // const getStatusColor = (status) => {
-  //   switch (status) {
-  //     case 'Executed': return '#00C851';
-  //     case 'Pending': return '#ffbb33';
-  //     case 'Cancelled': return '#ff4444';
-  //     default: return '#666';
-  //   }
-  // };
+
 
   const getStatusColor = (status) => {
     switch (status) {
