@@ -2,16 +2,13 @@ import React, { useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
 import { useAuth } from "@clerk/clerk-react";
-
 import axios from "axios";
-
-
 import "./BuyActionWindow.css";
 
 const BuyActionWindow = ({  data }) => {
   const {handleCloseBuyWindow}=useContext(GeneralContext)
   const [stockQuantity, setStockQuantity] = useState(1);
-  const [stockPrice, setStockPrice] = useState(0.0);
+  const [stockPrice, setStockPrice] = useState(data?.price || 0.0);
   const [orderType, setOrderType] = useState("DELIVERY");
 
   const orderTypes = [
@@ -19,6 +16,30 @@ const BuyActionWindow = ({  data }) => {
     { value: "DELIVERY", label: "Delivery" },
     { value: "FNO", label: "F&O" }
   ];
+
+  // Market hours check (9:15 AM to 3:30 PM IST, Monday to Friday)
+  const isMarketOpen = () => {
+    const now = new Date();
+    const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    
+    const day = istTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const hours = istTime.getHours();
+    const minutes = istTime.getMinutes();
+    const currentTime = hours * 60 + minutes;
+    
+    // Market is closed on weekends
+    if (day === 0 || day === 6) {
+      return false;
+    }
+    
+    // Market hours: 9:15 AM (555 minutes) to 3:30 PM (930 minutes)
+    const marketOpenTime = 9 * 60 + 15; // 9:15 AM
+    const marketCloseTime = 15 * 60 + 30; // 3:30 PM
+    
+    return currentTime >= marketOpenTime && currentTime <= marketCloseTime;
+  };
+
+  const [marketError, setMarketError] = useState("");
 
   const {getToken} = useAuth();
 
@@ -33,13 +54,85 @@ const BuyActionWindow = ({  data }) => {
   orderType: orderType,
   };
 
-const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Check if intraday order is allowed
+  const isIntradayAllowed = () => {
+    if (orderType === "INTRADAY") {
+      return isMarketOpen();
+    }
+    return true;
+  };
+
+  // Get market status message
+  const getMarketStatusMessage = () => {
+    if (orderType === "INTRADAY" && !isMarketOpen()) {
+      const now = new Date();
+      const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+      const day = istTime.getDay();
+      
+      if (day === 0 || day === 6) {
+        return "Intraday orders are not available on weekends. Market is closed.";
+      } else {
+        return "Intraday orders are only available during market hours (9:15 AM - 3:30 PM IST).";
+      }
+    }
+    return "";
+  };
+
+  // Get valuable market info message
+  const getMarketInfoMessage = () => {
+    if (orderType === "INTRADAY") {
+      const now = new Date();
+      const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+      const day = istTime.getDay();
+      const hours = istTime.getHours();
+      const minutes = istTime.getMinutes();
+      const currentTime = hours * 60 + minutes;
+      
+      if (isMarketOpen()) {
+        const closeTime = 15 * 60 + 30; // 3:30 PM
+        const remainingMinutes = closeTime - currentTime;
+        const remainingHours = Math.floor(remainingMinutes / 60);
+        const remainingMins = remainingMinutes % 60;
+        
+        return `🟢 Market is OPEN - ${remainingHours}h ${remainingMins}m until closing at 3:30 PM`;
+      } else if (day === 0 || day === 6) {
+        // Weekend - show next Monday opening
+        const daysUntilMonday = day === 0 ? 1 : 2; // Sunday=0, Saturday=6
+        return `🔴 Market CLOSED (Weekend) - Opens Monday 9:15 AM (${daysUntilMonday} day${daysUntilMonday > 1 ? 's' : ''} away)`;
+      } else {
+        // Weekday but outside market hours
+        if (currentTime < 9 * 60 + 15) {
+          // Before market opens
+          const openTime = 9 * 60 + 15;
+          const minutesUntilOpen = openTime - currentTime;
+          const hoursUntilOpen = Math.floor(minutesUntilOpen / 60);
+          const minsUntilOpen = minutesUntilOpen % 60;
+          
+          return `🔴 Market CLOSED - Opens in ${hoursUntilOpen}h ${minsUntilOpen}m at 9:15 AM`;
+        } else {
+          // After market closes
+          return `🔴 Market CLOSED - Opens tomorrow at 9:15 AM`;
+        }
+      }
+    }
+    return "";
+  };
 
   const createOrder = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      setMarketError("");
+      
+      // Check intraday restriction
+      if (!isIntradayAllowed()) {
+        setMarketError(getMarketStatusMessage());
+        setIsLoading(false);
+        return;
+      }
       
       const authToken = await getToken();
       if (!authToken) {
@@ -81,17 +174,33 @@ const [isLoading, setIsLoading] = useState(false);
 
   const handleBuyClick = () => {
     createOrder();
-    handleCloseBuyWindow();
   };
 
   const handleCancelClick = () => {
     handleCloseBuyWindow();
   };
 
+  if (!data) return null;
+
   return (
-    <div className="buy-action-overlay" onClick={handleCancelClick}>
-      <div className="buy-action-container" id="buy-window" draggable="true" onClick={(e) => e.stopPropagation()}>
-      <div className="buy-action-regular-order">
+    <div className="trade-popup-overlay" onClick={handleCancelClick}>
+      <div className="trade-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="trade-popup-header">
+          <h3>{data.name}</h3>
+        </div>
+
+        <div className="trade-popup-stock-info">
+          <p className={data.changePercent < 0 ? "down" : "up"}>
+            {data.changePercent < 0 ? (
+              <span className="icon">↓</span>
+            ) : (
+              <span className="icon">↑</span>
+            )}
+            {Math.abs(data.changePercent)}% 
+          </p>
+          <span className="stock-price">₹{data.price}</span>
+        </div>
+
         <div className="order-type-selector">
           {orderTypes.map((type) => (
             <label key={type.value} className={`order-type-option ${orderType === type.value ? 'selected' : ''}`}>
@@ -106,6 +215,7 @@ const [isLoading, setIsLoading] = useState(false);
             </label>
           ))}
         </div>
+
         <div className="buy-action-inputs">
           <fieldset>
             <legend>Qty.</legend>
@@ -129,27 +239,31 @@ const [isLoading, setIsLoading] = useState(false);
             />
           </fieldset>
         </div>
-      </div>
 
-      <div className="buy-action-buttons">
-        {error && <div className="error-message">{error}</div>}
-        <span>Margin required ₹{(stockQuantity * stockPrice * 0.2).toFixed(2)}</span>
-        <div>
-          <button 
-            className={`buy-action-btn buy-action-btn-blue ${isLoading ? 'loading' : ''}`} 
-            onClick={handleBuyClick}
-            disabled={isLoading || !stockQuantity || !stockPrice}
-          >
-            {isLoading ? 'Placing Order...' : 'Buy'}
-          </button>
-          <button 
-            className="buy-action-btn buy-action-btn-grey" 
-            onClick={handleCancelClick}
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-        </div>
+        <div className="trade-popup-actions">
+          {error && <div className="error-message">{error}</div>}
+          {marketError && <div className="market-error-message">{marketError}</div>}
+          {getMarketInfoMessage() && <div className="market-info-message">{getMarketInfoMessage()}</div>}
+          <span className="margin-text">
+            Margin required: ₹{(stockQuantity * stockPrice * 0.2).toFixed(2)}
+          </span>
+
+          <div className="action-buttons">
+            <button
+              className={`buy-btn ${isLoading ? "loading" : ""} ${!isIntradayAllowed() ? "disabled" : ""}`}
+              onClick={handleBuyClick}
+              disabled={isLoading || !stockQuantity || !stockPrice || !isIntradayAllowed()}
+            >
+              {isLoading ? "Placing Order..." : "Buy"}
+            </button>
+            <button
+              className="cancel-btn"
+              onClick={handleCancelClick}
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
