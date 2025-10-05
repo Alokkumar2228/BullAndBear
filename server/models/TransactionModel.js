@@ -11,7 +11,8 @@ const transactionSchema = new mongoose.Schema({
   email: { type: String },
   contact: { type: String },
   notes: { type: Object },                         // store Razorpay notes (flexible)
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  mode : {type:String},
 });
 
 const Transaction = mongoose.model("Transaction", transactionSchema);

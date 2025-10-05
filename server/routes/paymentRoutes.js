@@ -1,5 +1,5 @@
 import express from 'express';
-import {createOrder,verifyPayment,capturePayment} from '../controllers/paymentController.js';
+import {createOrder,verifyPayment,capturePayment,getTransactionData} from '../controllers/paymentController.js';
 import {clerkAuth} from '../middleware/clerkAuth.js';
 
 const paymentRouter = express.Router();
@@ -22,6 +22,7 @@ const asyncHandler = (fn) => (req, res, next) => {
 paymentRouter.post('/create-order', clerkAuth, asyncHandler(createOrder));
 paymentRouter.post('/verify', clerkAuth, asyncHandler(verifyPayment));
 paymentRouter.post('/capture', express.raw({ type: "application/json" }), asyncHandler(capturePayment));
+paymentRouter.get('/get-transaction-data', clerkAuth, asyncHandler(getTransactionData));
 
 // // Apply error handling middleware
 // paymentRouter.use(errorHandler);

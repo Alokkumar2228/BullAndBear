@@ -10,8 +10,8 @@ const handleSvixWebhook = async (req, res) => {
 
   const payload = JSON.stringify(req.body);
   const headers = req.headers;
-  console.log('payload', payload);
-  console.log('headers', headers);
+  // console.log('payload', payload);
+  // console.log('headers', headers);
 
   const wh = new Webhook(webhook_secret);
   const svix_id = headers['svix-id'];
@@ -29,7 +29,7 @@ const handleSvixWebhook = async (req, res) => {
       'svix-signature': svix_signature
     });
 
-    console.log('event', event);
+    // console.log('event', event);
 
     if (event.type === 'user.created') {
       const { id, email_addresses } = event.data;
@@ -43,7 +43,7 @@ const handleSvixWebhook = async (req, res) => {
       });
 
       await newUser.save();
-      console.log('user created', newUser);
+      // console.log('user created', newUser);
     }
 
     res.status(200).json({ message: "Webhook received" });
@@ -54,4 +54,12 @@ const handleSvixWebhook = async (req, res) => {
   }
 };
 
-export default handleSvixWebhook;
+const getUserData = async(req,res) =>{
+  const userId =  req.user.id;
+  // console.log(userId);
+  const user = await User.findOne({user_id:userId});
+  // console.log(user);
+  res.status(200).json({success:true , user:user});
+}
+
+export {handleSvixWebhook , getUserData};
