@@ -63,7 +63,7 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid signature" });
     }
 
-    // ✅ Payment verified
+    
     const userId = req.user.id;
 
     // Step 2: Fetch payment details from Razorpay (for actual amount)
@@ -78,25 +78,10 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment not captured" });
     }
 
-    const amountPaid = payment.amount / 100; // paise → rupees
-
-    // Step 3: Update user balance
-    const user = await User.findOne({ user_id: userId });
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found. If any amount deducted it will be refunded in 2-3 business days",
-      });
-    }
-
-    user.balance += amountPaid;
-    await user.save();
-
     // Step 4: Respond success
     res.json({
       success: true,
       message: "Payment verified successfully",
-      amount: amountPaid,
-      newBalance: user.balance,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
@@ -118,7 +103,7 @@ const capturePayment = async(req,res) =>{
 
     if (event === "payment.captured") {
       const payment = req.body.payload.payment.entity;
-      console.log(payment);
+       console.log(payment);
       const authToken = payment.notes.auth_token;
        // Decode Token
       const publicKey = process.env.CLERK_PEM_PUBLIC_KEY;
@@ -174,6 +159,7 @@ const capturePayment = async(req,res) =>{
         contact: payment.contact,
         notes: payment.notes,
         createdAt: new Date(payment.created_at * 1000),
+        mode:"credit"
       };
 
       // Save to DB
@@ -231,8 +217,8 @@ const capturePayment = async(req,res) =>{
         status: payment.status, // "captured"
         email: payment.email,
         contact: payment.contact,
-        notes: payment.notes,
         createdAt: new Date(payment.created_at * 1000),
+        mode: "Credit"
       };
 
       // Save to DB
@@ -249,7 +235,32 @@ const capturePayment = async(req,res) =>{
   }
 }
 
+const getTransactionData = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-export {createOrder,verifyPayment,capturePayment}
+    const transactions = await Transaction.find(
+      { user_id: userId },
+      {
+        transaction_id: 1,
+        amount: 1,
+        status: 1,
+        type: 1,
+        createdAt: 1,
+        mode: 1,
+      }
+    )
+      .sort({ createdAt: -1 }); // 👈 Sort by date descending (newest first)
+
+    res.status(200).json({ success: true, transactions });
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+
+export {createOrder,verifyPayment,capturePayment,getTransactionData}
 
 

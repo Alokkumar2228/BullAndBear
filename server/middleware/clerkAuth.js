@@ -36,6 +36,7 @@ export const clerkAuth = (req, res, next) => {
 
     // Attach user info to request
     req.user = { id: userId, decoded };
+    // console.log(req.user);
 
     next();
   } catch (err) {

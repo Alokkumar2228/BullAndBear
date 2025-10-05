@@ -110,8 +110,8 @@ export const createOrder = async (req, res) => {
 // Get Orders by User ID
 export const getOrderById = async (req, res) => {
   try {
-    console.log('Request user object:', req.user);
-    console.log('Request headers:', req.headers);
+    // console.log('Request user object:', req.user);
+    // console.log('Request headers:', req.headers);
     
     const userId = req.user?.id;
     if (!userId) {
@@ -144,7 +144,7 @@ export const getOrderById = async (req, res) => {
       query.inDematAccount = inDematAccount;
     }
 
-    console.log("Fetching orders with query:", query);
+    // console.log("Fetching orders with query:", query);
     const orders = await Order.find(query);
 
     // Return empty array instead of 404 when no orders found

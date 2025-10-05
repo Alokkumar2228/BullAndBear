@@ -1,7 +1,7 @@
 // src/components/Payment.jsx
 import axios from "axios";
 
- const openRazorpayCheckout = (order,authToken) => {
+ const openRazorpayCheckout = (order,authToken,findUserFundsData,findTransactionData) => {
   const options = {
     key: import.meta.env.VITE_RAZORPAY_KEY_ID,
     amount: order.amount,
@@ -18,6 +18,8 @@ import axios from "axios";
           }
         });
         if (verifyRes.data.success) {
+          await findUserFundsData();
+          await findTransactionData();
           alert("Payment successful & verified!");
         } else {
           alert("Payment verification failed");
@@ -38,7 +40,7 @@ import axios from "axios";
   rzp.open();
 };
 
-export const createOrder = async (amount, authToken) => {
+export const createOrder = async (amount, authToken, findUserFundsData,findTransactionData) => {
   const { data } = await axios.post("http://localhost:8000/api/payment/create-order", {
     amount: amount*100,
     currency: "INR",
@@ -52,7 +54,7 @@ export const createOrder = async (amount, authToken) => {
       });
 
   if (data.success) {
-    openRazorpayCheckout(data.order,authToken);
+    openRazorpayCheckout(data.order,authToken, findUserFundsData,findTransactionData);
   } else {
     alert("Failed to create order");
   }
