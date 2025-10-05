@@ -133,7 +133,7 @@ const capturePayment = async(req,res) =>{
 
       const userId = decoded.sub;
 
-      // console.log("UserId",userId);
+      console.log("UserId",userId);
 
       const user = await User.findOne({ user_id: userId });
       if (!user) {
@@ -172,7 +172,7 @@ const capturePayment = async(req,res) =>{
       if (payment.contact) {
         await sendPaymentSMS(payment.contact, payment.amount / 100);
       }
-      // console.log("Transaction saved:", newTransaction);
+      console.log("Transaction saved:", newTransaction);
     
     }
     else if(event === "payment.failed"){
