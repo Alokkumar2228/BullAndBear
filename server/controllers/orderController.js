@@ -1,5 +1,7 @@
 
 import Order from '../models/OrderModel.js';
+import User from '../models/UserModel.js';
+import { getUsdInrRate } from '../utils/forex.js';
 
 // Logging utility
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -49,7 +51,8 @@ export const createOrder = async (req, res) => {
       changePercent,
       orderType = "DELIVERY",
       status = "PENDING",
-      totalAmount
+      totalAmount,
+      currency = "USD"
     } = req.body;
 
 
@@ -62,13 +65,40 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Verify totalAmount calculation
-    const calculatedTotal = quantity * purchasePrice;
-    if (Math.abs(calculatedTotal - totalAmount) > 0.01) { // Allow for small floating point differences
+    // Coerce numeric inputs in case they arrive as strings
+    const numericQuantity = Number(quantity);
+    const numericPurchasePrice = Number(purchasePrice);
+    const numericTotalAmount = Number(totalAmount);
+    const numericActualPrice = Number(actualPrice);
+
+    // Verify totalAmount calculation in the provided currency
+    const calculatedTotal = numericQuantity * numericPurchasePrice;
+    if (Math.abs(calculatedTotal - numericTotalAmount) > 0.01) { // Allow for small floating point differences
       return res.status(400).json({ 
         message: "Invalid total amount",
         expected: calculatedTotal,
-        received: totalAmount
+        received: numericTotalAmount
+      });
+    }
+
+    // Fetch user to check INR balance
+    const user = await User.findOne({ user_id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Convert required amount to INR if price is in USD.
+    // Deduction should be based on actual trade price.
+    const normalizedCurrency = (currency || 'USD').toString().toUpperCase();
+    const usdInrRate = await getUsdInrRate();
+    const amountAtFillInGivenCurrency = numericQuantity * numericActualPrice;
+    const requiredAmountInInr = normalizedCurrency === 'USD'
+      ? amountAtFillInGivenCurrency * usdInrRate
+      : amountAtFillInGivenCurrency;
+
+    if (user.balance < requiredAmountInInr) {
+      return res.status(400).json({
+        message: `Insufficient balance. Required ₹${requiredAmountInInr.toFixed(2)}, Available ₹${Number(user.balance).toFixed(2)}`
       });
     }
 
@@ -89,7 +119,10 @@ export const createOrder = async (req, res) => {
       actualPrice,
       changePercent,
       orderType,
-      status,
+      currency,
+      // Automatically set status and executedAt
+      status: "EXECUTED",
+      executedAt: new Date(),
       // Set settlement details for delivery orders
       ...(orderType === "DELIVERY" && {
         settlementDate: calculateSettlementDate(),
@@ -99,7 +132,12 @@ export const createOrder = async (req, res) => {
     });
 
     const savedOrder = await newOrder.save();
-    res.status(201).json(savedOrder);           
+
+    // Deduct user balance now that order is placed
+    user.balance = Number(user.balance) - requiredAmountInInr;
+    await user.save();
+
+    res.status(201).json({ order: savedOrder, newBalance: user.balance });           
   } catch (err) {
     res
       .status(500)
