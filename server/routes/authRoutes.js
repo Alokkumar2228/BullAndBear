@@ -1,5 +1,5 @@
 import express from 'express';
-import handleSvixWebhook from '../controllers/userController.js';
+import {handleSvixWebhook} from '../controllers/userController.js';
 
 const authRouter = express.Router();
 

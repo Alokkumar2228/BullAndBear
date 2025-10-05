@@ -1,24 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {createOrder } from "@/pages/Dashboard/utils"
 import {useAuth} from "@clerk/clerk-react";
+import { GeneralContext } from "./GeneralContext";
 
 const Funds = () => {
   const {getToken} = useAuth();
+  const {userFundData,transactionData,findTransactionData,findUserFundsData} = useContext(GeneralContext);
 
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
+  const [showTransactions, setShowTransactions] = useState(false);
   const [amount, setAmount] = useState('');
 
-  // Sample data - replace with actual data from your API/state
-  const fundsData ={
-    totalBalance: 7800.40,
-    investedAmount: 3757.30,
-    addedFunds: 4064.00,
-    withdrawnFunds: 21.30,
-    availableCash: 4043.10,
-    todaysGainLoss: 285.70,
-    totalGainLoss: 1543.10
-  };
+  // console.log("fund" , userFundData);
 
+  // Get data from context API
+  const fundsData = {
+    totalBalance: userFundData?.balance || 0,
+    investedAmount: userFundData?.investedAmount || 0,
+    withdrawnFunds: userFundData?.withdrawAmount || 0,
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -28,12 +28,20 @@ const Funds = () => {
     }).format(amount);
   };
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+  };
+
   const handleAddFunds = async() => {
      const authToken = await getToken();
     const addAmount = parseFloat(amount);
     if (addAmount && addAmount > 0 && addAmount <= 50000) {
-      await createOrder(addAmount, authToken);
-
+      await createOrder(addAmount, authToken,findUserFundsData,findTransactionData);
     }
   };
 
@@ -41,6 +49,7 @@ const Funds = () => {
     setShowAddFundsModal(false);
     setAmount('');
   };
+
   return (
     <div style={styles.container}>
       {/* Header Section */}
@@ -73,17 +82,11 @@ const Funds = () => {
         <div style={{...styles.overviewCard, ...styles.balanceCard}}>
           <div style={styles.cardHeader}>
             <h3 style={styles.cardTitle}>Total Balance</h3>
-            <div style={styles.positiveTrend}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M7 14l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              +2.4%
-            </div>
           </div>
           <div style={styles.cardContent}>
             <div style={styles.amountLarge}>{formatCurrency(fundsData.totalBalance)}</div>
             <div style={styles.gainLoss}>
-              Today's P&L: +{formatCurrency(fundsData.todaysGainLoss)}
+              Available balance in account
             </div>
           </div>
         </div>
@@ -100,55 +103,91 @@ const Funds = () => {
 
         <div style={styles.overviewCard}>
           <div style={styles.cardHeader}>
-            <h4 style={styles.cardTitle}>Available Cash</h4>
+            <h4 style={styles.cardTitle}>Withdrawn Amount</h4>
           </div>
           <div style={styles.cardContent}>
-            <div style={styles.amount}>{formatCurrency(fundsData.availableCash)}</div>
-            <div style={styles.description}>Ready to invest</div>
-          </div>
-        </div>
-
-        <div style={styles.overviewCard}>
-          <div style={styles.cardHeader}>
-            <h4 style={styles.cardTitle}>Total Returns</h4>
-          </div>
-          <div style={styles.cardContent}>
-            <div style={{...styles.amount, color: '#10b981'}}>+{formatCurrency(fundsData.totalGainLoss)}</div>
-            <div style={styles.description}>Overall profit/loss</div>
+            <div style={styles.amount}>{formatCurrency(fundsData.withdrawnFunds)}</div>
+            <div style={styles.description}>Total withdrawals</div>
           </div>
         </div>
       </div>
 
-      {/* Funds Flow Summary */}
-      <div style={styles.fundsFlow}>
-        <h3 style={styles.sectionTitle}>Funds Summary</h3>
-        <div style={styles.flowCards}>
-          <div style={styles.flowCard}>
-            <div style={styles.flowIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div style={styles.flowContent}>
-              <div style={styles.flowLabel}>Funds Added</div>
-              <div style={styles.flowAmount}>{formatCurrency(fundsData.addedFunds)}</div>
-              <div style={styles.flowNote}>Total deposits</div>
-            </div>
-          </div>
-
-          <div style={styles.flowCard}>
-            <div style={styles.flowIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div style={styles.flowContent}>
-              <div style={styles.flowLabel}>Funds Withdrawn</div>
-              <div style={styles.flowAmount}>{formatCurrency(fundsData.withdrawnFunds)}</div>
-              <div style={styles.flowNote}>Total withdrawals</div>
-            </div>
-          </div>
+      {/* Transaction History Section */}
+      <div style={styles.transactionSection}>
+        <div style={styles.transactionHeader}>
+          <h3 style={styles.sectionTitle}>Transaction History</h3>
+          <button 
+            onClick={() => setShowTransactions(!showTransactions)}
+            style={styles.toggleBtn}
+          >
+            {showTransactions ? 'Hide Transactions' : 'Show Transactions'}
+            <svg 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none"
+              style={{
+                transform: showTransactions ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease'
+              }}
+            >
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
+
+        {showTransactions && (
+          <div style={styles.transactionList}>
+            {transactionData.map((transaction) => (
+              <div key={transaction._id} style={styles.transactionItem}>
+                <div style={styles.transactionLeft}>
+                  <div style={{
+                    ...styles.transactionIcon,
+                    backgroundColor: transaction.type === 'credit' ? '#dbeafe' : '#fef3c7'
+                  }}>
+                    {transaction.mode === 'credit' ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 5v14M5 12h14" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12h14" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <div style={styles.transactionDetails}>
+                    <div style={styles.transactionDescription}>
+                      {transaction.description}
+                    </div>
+                    <div style={styles.transactionMeta}>
+                      {formatDate(transaction.date)} • {transaction.time}
+                    </div>
+                    <div style={styles.transactionId}>
+                      ID: {transaction.transaction_id}
+                    </div>
+                  </div>
+                </div>
+                <div style={styles.transactionRight}>
+                  <div style={{
+                    ...styles.transactionAmount,
+                    color: transaction.mode === 'credit' ? '#10b981' : '#ef4444'
+                  }}>
+                    {transaction.mode === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                  </div>
+                  <div style={styles.transactionStatus}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: '#d1fae5',
+                      color: '#065f46'
+                    }}>
+                      {transaction.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add Funds Modal */}
@@ -275,7 +314,7 @@ const styles = {
   },
   overviewGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: '20px',
     marginBottom: '32px'
   },
@@ -386,6 +425,99 @@ const styles = {
   flowNote: {
     fontSize: '12px',
     color: '#9ca3af'
+  },
+  transactionSection: {
+    marginBottom: '32px'
+  },
+  transactionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px'
+  },
+  toggleBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 20px',
+    backgroundColor: '#dbeafe',
+    color: '#1e40af',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  transactionList: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0',
+    overflow: 'hidden'
+  },
+  transactionItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px',
+    borderBottom: '1px solid #f1f5f9',
+    transition: 'background-color 0.2s ease'
+  },
+  transactionLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    flex: 1
+  },
+  transactionIcon: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0
+  },
+  transactionDetails: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
+  transactionDescription: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#1e293b'
+  },
+  transactionMeta: {
+    fontSize: '13px',
+    color: '#64748b'
+  },
+  transactionId: {
+    fontSize: '12px',
+    color: '#94a3b8',
+    fontFamily: 'monospace'
+  },
+  transactionRight: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: '8px'
+  },
+  transactionAmount: {
+    fontSize: '18px',
+    fontWeight: '700'
+  },
+  transactionStatus: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+  statusBadge: {
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    textTransform: 'capitalize'
   },
   modalOverlay: {
     position: 'fixed',
