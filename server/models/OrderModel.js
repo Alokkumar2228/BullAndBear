@@ -5,6 +5,11 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  orderId:{
+    type: String,
+    required: true,
+    unique: true
+  },
   symbol: {
     type: String,
     required: true

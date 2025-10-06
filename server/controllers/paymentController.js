@@ -259,8 +259,40 @@ const getTransactionData = async (req, res) => {
   }
 };
 
+const withdrawOrder = async(req,res) =>{
+  const {account_number,ifsc,amount} = req.body;
+  const userId  = req.user.id;
+  const user = await User.findOne({user_id: userId});
+  if(!user){
+    return res.status(404).json({success:false,message:"User not found"});
+  }
+  if(user.balance < amount){
+    return res.status(400).json({success:false,message:"Insufficient balance"});
+  }
+  user.balance -= amount;
+  user.withdrawAmount += amount;
+  await user.save();
+
+  const newTransaction = new Transaction({
+    user_id: userId,
+    transaction_id: `rz_${Date.now()}`,
+    type: "withdrawal",
+    amount: amount,
+    currency: "INR",
+    status: "processed",
+    notes: {account_number,ifsc},
+    createdAt: new Date(),
+    mode:"debit"
+  });
+  await newTransaction.save();
+  res.status(200).json({success:true,message:"Withdrawal processed",transaction:newTransaction});
+
+}
 
 
-export {createOrder,verifyPayment,capturePayment,getTransactionData}
+
+
+
+export {createOrder,verifyPayment,capturePayment,getTransactionData,withdrawOrder};
 
 
