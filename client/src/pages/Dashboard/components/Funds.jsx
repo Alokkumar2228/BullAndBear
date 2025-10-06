@@ -66,13 +66,13 @@ const Funds = () => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            Add Funds
+            <span style={styles.btnText}>Add Funds</span>
           </button>
           <button style={styles.secondaryBtn}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Withdraw
+            <span style={styles.btnText}>Withdraw</span>
           </button>
         </div>
       </div>
@@ -120,7 +120,7 @@ const Funds = () => {
             onClick={() => setShowTransactions(!showTransactions)}
             style={styles.toggleBtn}
           >
-            {showTransactions ? 'Hide Transactions' : 'Show Transactions'}
+            <span style={styles.toggleBtnText}>{showTransactions ? 'Hide' : 'Show'}</span>
             <svg 
               width="16" 
               height="16" 
@@ -235,7 +235,11 @@ const Funds = () => {
                 </button>
                 <button 
                   onClick={handleAddFunds}
-                  style={styles.addButton}
+                  style={{
+                    ...styles.addButton,
+                    opacity: (!amount || parseFloat(amount) <= 0 || parseFloat(amount) > 50000) ? 0.5 : 1,
+                    cursor: (!amount || parseFloat(amount) <= 0 || parseFloat(amount) > 50000) ? 'not-allowed' : 'pointer'
+                  }}
                   disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > 50000}
                 >
                   Add Amount
@@ -251,7 +255,7 @@ const Funds = () => {
 
 const styles = {
   container: {
-    padding: '24px',
+    padding: 'clamp(12px, 3vw, 24px)',
     backgroundColor: '#f8fafc',
     minHeight: '100vh',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
@@ -260,15 +264,18 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '32px',
+    marginBottom: 'clamp(20px, 4vw, 32px)',
     flexWrap: 'wrap',
     gap: '16px'
   },
   titleSection: {
-    flex: 1
+    flex: '1 1 100%',
+    '@media (min-width: 640px)': {
+      flex: '1 1 auto'
+    }
   },
   title: {
-    fontSize: '28px',
+    fontSize: 'clamp(22px, 4vw, 28px)',
     fontWeight: '700',
     color: '#1e293b',
     margin: '0 0 4px 0'
@@ -276,51 +283,68 @@ const styles = {
   subtitle: {
     color: '#64748b',
     margin: 0,
-    fontSize: '14px'
+    fontSize: 'clamp(12px, 2vw, 14px)'
   },
   actionsSection: {
     display: 'flex',
-    gap: '12px'
+    gap: '8px',
+    width: '100%',
+    '@media (min-width: 640px)': {
+      width: 'auto'
+    }
   },
   primaryBtn: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: '8px',
-    padding: '12px 20px',
+    padding: 'clamp(10px, 2vw, 12px) clamp(12px, 3vw, 20px)',
     backgroundColor: '#3b82f6',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
-    fontSize: '14px',
+    fontSize: 'clamp(13px, 2vw, 14px)',
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    textDecoration: 'none'
+    textDecoration: 'none',
+    flex: 1,
+    '@media (min-width: 640px)': {
+      flex: 'initial'
+    }
   },
   secondaryBtn: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: '8px',
-    padding: '12px 20px',
+    padding: 'clamp(10px, 2vw, 12px) clamp(12px, 3vw, 20px)',
     backgroundColor: 'white',
     color: '#374151',
     border: '1px solid #d1d5db',
     borderRadius: '8px',
-    fontSize: '14px',
+    fontSize: 'clamp(13px, 2vw, 14px)',
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    textDecoration: 'none'
+    textDecoration: 'none',
+    flex: 1,
+    '@media (min-width: 640px)': {
+      flex: 'initial'
+    }
+  },
+  btnText: {
+    display: 'inline'
   },
   overviewGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '20px',
-    marginBottom: '32px'
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+    gap: 'clamp(12px, 3vw, 20px)',
+    marginBottom: 'clamp(20px, 4vw, 32px)'
   },
   overviewCard: {
     backgroundColor: 'white',
-    padding: '24px',
+    padding: 'clamp(16px, 3vw, 24px)',
     borderRadius: '12px',
     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
     border: '1px solid #e2e8f0'
@@ -336,20 +360,10 @@ const styles = {
     marginBottom: '16px'
   },
   cardTitle: {
-    fontSize: '16px',
+    fontSize: 'clamp(14px, 2.5vw, 16px)',
     fontWeight: '600',
     margin: 0,
     color: 'inherit'
-  },
-  positiveTrend: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: '4px 8px',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: '500'
   },
   cardContent: {
     display: 'flex',
@@ -357,97 +371,58 @@ const styles = {
     gap: '8px'
   },
   amountLarge: {
-    fontSize: '32px',
+    fontSize: 'clamp(24px, 5vw, 32px)',
     fontWeight: '700',
-    color: 'inherit'
+    color: 'inherit',
+    wordBreak: 'break-word'
   },
   amount: {
-    fontSize: '24px',
+    fontSize: 'clamp(20px, 4vw, 24px)',
     fontWeight: '700',
-    color: '#1e293b'
+    color: '#1e293b',
+    wordBreak: 'break-word'
   },
   gainLoss: {
-    fontSize: '14px',
+    fontSize: 'clamp(12px, 2vw, 14px)',
     opacity: 0.9
   },
   description: {
-    fontSize: '14px',
+    fontSize: 'clamp(12px, 2vw, 14px)',
     color: '#64748b'
   },
-  fundsFlow: {
-    marginBottom: '32px'
-  },
-  sectionTitle: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '20px'
-  },
-  flowCards: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '20px'
-  },
-  flowCard: {
-    backgroundColor: 'white',
-    padding: '24px',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #e2e8f0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px'
-  },
-  flowIcon: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '8px',
-    backgroundColor: '#dbeafe',
-    color: '#3b82f6',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  flowContent: {
-    flex: 1
-  },
-  flowLabel: {
-    fontSize: '14px',
-    color: '#64748b',
-    marginBottom: '4px'
-  },
-  flowAmount: {
-    fontSize: '20px',
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: '2px'
-  },
-  flowNote: {
-    fontSize: '12px',
-    color: '#9ca3af'
-  },
   transactionSection: {
-    marginBottom: '32px'
+    marginBottom: 'clamp(20px, 4vw, 32px)'
   },
   transactionHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '20px'
+    marginBottom: '20px',
+    gap: '12px',
+    flexWrap: 'wrap'
+  },
+  sectionTitle: {
+    fontSize: 'clamp(18px, 3vw, 20px)',
+    fontWeight: '600',
+    color: '#1e293b',
+    margin: 0
   },
   toggleBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    padding: '10px 20px',
+    padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 20px)',
     backgroundColor: '#dbeafe',
     color: '#1e40af',
     border: 'none',
     borderRadius: '8px',
-    fontSize: '14px',
+    fontSize: 'clamp(12px, 2vw, 14px)',
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s ease'
+  },
+  toggleBtnText: {
+    display: 'inline'
   },
   transactionList: {
     backgroundColor: 'white',
@@ -460,19 +435,22 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '20px 24px',
+    padding: 'clamp(12px, 3vw, 20px) clamp(12px, 3vw, 24px)',
     borderBottom: '1px solid #f1f5f9',
-    transition: 'background-color 0.2s ease'
+    transition: 'background-color 0.2s ease',
+    gap: '12px',
+    flexWrap: 'wrap'
   },
   transactionLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
-    flex: 1
+    gap: 'clamp(10px, 2vw, 16px)',
+    flex: '1 1 200px',
+    minWidth: 0
   },
   transactionIcon: {
-    width: '48px',
-    height: '48px',
+    width: 'clamp(40px, 8vw, 48px)',
+    height: 'clamp(40px, 8vw, 48px)',
     borderRadius: '10px',
     display: 'flex',
     alignItems: 'center',
@@ -482,31 +460,37 @@ const styles = {
   transactionDetails: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px'
+    gap: '4px',
+    minWidth: 0,
+    flex: 1
   },
   transactionDescription: {
-    fontSize: '15px',
+    fontSize: 'clamp(13px, 2.5vw, 15px)',
     fontWeight: '600',
-    color: '#1e293b'
+    color: '#1e293b',
+    wordBreak: 'break-word'
   },
   transactionMeta: {
-    fontSize: '13px',
+    fontSize: 'clamp(11px, 2vw, 13px)',
     color: '#64748b'
   },
   transactionId: {
-    fontSize: '12px',
+    fontSize: 'clamp(10px, 1.8vw, 12px)',
     color: '#94a3b8',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
+    wordBreak: 'break-all'
   },
   transactionRight: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-end',
-    gap: '8px'
+    gap: '8px',
+    flexShrink: 0
   },
   transactionAmount: {
-    fontSize: '18px',
-    fontWeight: '700'
+    fontSize: 'clamp(16px, 3vw, 18px)',
+    fontWeight: '700',
+    whiteSpace: 'nowrap'
   },
   transactionStatus: {
     display: 'flex',
@@ -515,7 +499,7 @@ const styles = {
   statusBadge: {
     padding: '4px 12px',
     borderRadius: '12px',
-    fontSize: '12px',
+    fontSize: 'clamp(10px, 2vw, 12px)',
     fontWeight: '500',
     textTransform: 'capitalize'
   },
@@ -529,25 +513,29 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000
+    zIndex: 1000,
+    padding: '16px'
   },
   modal: {
     backgroundColor: 'white',
     borderRadius: '16px',
-    width: '90%',
+    width: '100%',
     maxWidth: '400px',
     overflow: 'hidden',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    maxHeight: '90vh',
+    display: 'flex',
+    flexDirection: 'column'
   },
   modalHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '24px 24px 16px',
+    padding: 'clamp(16px, 3vw, 24px) clamp(16px, 3vw, 24px) clamp(12px, 2vw, 16px)',
     borderBottom: '1px solid #f1f5f9'
   },
   modalTitle: {
-    fontSize: '20px',
+    fontSize: 'clamp(18px, 3vw, 20px)',
     fontWeight: '600',
     color: '#1e293b',
     margin: 0
@@ -559,27 +547,31 @@ const styles = {
     padding: '4px',
     borderRadius: '6px',
     color: '#64748b',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   modalBody: {
-    padding: '16px 24px 24px'
+    padding: 'clamp(12px, 3vw, 16px) clamp(16px, 3vw, 24px) clamp(16px, 3vw, 24px)',
+    overflow: 'auto'
   },
   inputGroup: {
-    marginBottom: '24px'
+    marginBottom: 'clamp(16px, 3vw, 24px)'
   },
   inputLabel: {
     display: 'block',
-    fontSize: '14px',
+    fontSize: 'clamp(13px, 2vw, 14px)',
     fontWeight: '500',
     color: '#374151',
     marginBottom: '8px'
   },
   amountInput: {
     width: '100%',
-    padding: '16px',
+    padding: 'clamp(12px, 2.5vw, 16px)',
     border: '2px solid #e2e8f0',
     borderRadius: '8px',
-    fontSize: '18px',
+    fontSize: 'clamp(16px, 3vw, 18px)',
     fontWeight: '500',
     outline: 'none',
     transition: 'border-color 0.2s ease',
@@ -588,40 +580,43 @@ const styles = {
   },
   modalActions: {
     display: 'flex',
-    gap: '12px'
+    gap: '12px',
+    flexDirection: 'column',
+    '@media (min-width: 400px)': {
+      flexDirection: 'row'
+    }
   },
   cancelButton: {
     flex: 1,
-    padding: '12px 16px',
+    padding: 'clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)',
     border: '1px solid #d1d5db',
     backgroundColor: 'white',
     color: '#374151',
     borderRadius: '8px',
-    fontSize: '14px',
+    fontSize: 'clamp(13px, 2vw, 14px)',
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s ease'
   },
   addButton: {
     flex: 1,
-    padding: '12px 16px',
+    padding: 'clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)',
     border: 'none',
     backgroundColor: '#3b82f6',
     color: 'white',
     borderRadius: '8px',
-    fontSize: '14px',
+    fontSize: 'clamp(13px, 2vw, 14px)',
     fontWeight: '500',
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    opacity: 1
+    transition: 'all 0.2s ease'
   },
   inputHelperText: {
-    fontSize: '12px',
+    fontSize: 'clamp(11px, 2vw, 12px)',
     color: '#64748b',
     marginTop: '6px'
   },
   errorText: {
-    fontSize: '12px',
+    fontSize: 'clamp(11px, 2vw, 12px)',
     color: '#ef4444',
     marginTop: '6px',
     fontWeight: '500'

@@ -1,3 +1,4 @@
+/* Base Styles */
 .trade-popup-overlay {
   position: fixed;
   inset: 0;
@@ -6,27 +7,33 @@
   justify-content: center;
   align-items: center;
   z-index: 2000;
+  padding: 15px;
 }
 
 .trade-popup {
   background: #fff;
   border-radius: 12px;
   padding: 20px;
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.2);
   animation: fadeIn 0.3s ease-in-out;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .trade-popup-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 15px;
 }
 
 .trade-popup-header h3 {
   font-size: 18px;
   font-weight: 600;
   color: #222;
+  margin: 0;
 }
 
 .close-btn {
@@ -41,120 +48,39 @@
   justify-content: space-between;
   align-items: center;
   margin: 15px 0;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .trade-popup-stock-info .up {
   color: #22c55e;
   font-weight: 600;
+  font-size: 16px;
 }
+
 .trade-popup-stock-info .down {
   color: #ef4444;
   font-weight: 600;
+  font-size: 16px;
 }
+
 .stock-price {
   font-size: 20px;
   font-weight: 700;
   color: #333;
 }
 
-.trade-popup-actions {
-  margin-top: 15px;
-}
-
-.margin-text {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: #555;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.buy-btn {
-  flex: 1;
-  padding: 10px;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.buy-btn:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-.buy-btn.disabled,
-.buy-btn:disabled {
-  background: #9ca3af;
-  color: #6b7280;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.cancel-btn {
-  flex: 1;
-  padding: 10px;
-  background: #e5e7eb;
-  color: #111;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.cancel-btn:hover {
-  background: #d1d5db;
-}
-
-.loading {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.error-message {
-  color: red;
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.market-error-message {
-  color: #f59e0b;
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 10px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.market-info-message {
-  color: #374151;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+.icon {
+  margin-right: 5px;
+  font-weight: bold;
+  font-size: 18px;
 }
 
 .order-type-selector {
   display: flex;
   gap: 10px;
   margin: 15px 0;
+  flex-wrap: wrap;
 }
 
 .order-type-option {
@@ -168,6 +94,9 @@
   transition: all 0.2s;
   font-size: 14px;
   font-weight: 500;
+  flex: 1;
+  min-width: 100px;
+  justify-content: center;
 }
 
 .order-type-option:hover {
@@ -219,7 +148,454 @@
   outline: none;
 }
 
-.icon {
-  margin-right: 5px;
-  font-weight: bold;
+.order-type {
+  display: flex;
+  gap: 15px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+
+.order-type label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.order-type label:hover {
+  background: #f9fafb;
+}
+
+.order-type input[type="radio"] {
+  margin: 0;
+}
+
+.trade-popup-actions {
+  margin-top: 15px;
+}
+
+.margin-text {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.buy-btn {
+  flex: 1;
+  padding: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 15px;
+}
+
+.buy-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.buy-btn.disabled,
+.buy-btn:disabled {
+  background: #9ca3af;
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.cancel-btn {
+  flex: 1;
+  padding: 10px;
+  background: #e5e7eb;
+  color: #111;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.cancel-btn:hover {
+  background: #d1d5db;
+}
+
+.loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc2626;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.market-error-message {
+  color: #f59e0b;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.market-info-message {
+  color: #374151;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Tablet (768px - 991px) */
+@media (max-width: 991.98px) {
+  .trade-popup {
+    max-width: 450px;
+  }
+}
+
+/* Small Tablet (576px - 767px) */
+@media (max-width: 767.98px) {
+  .trade-popup-overlay {
+    padding: 10px;
+  }
+
+  .trade-popup {
+    padding: 18px;
+    max-width: 100%;
+  }
+
+  .trade-popup-header h3 {
+    font-size: 17px;
+  }
+
+  .stock-price {
+    font-size: 18px;
+  }
+
+  .order-type-selector {
+    gap: 8px;
+  }
+
+  .order-type-option {
+    padding: 8px 10px;
+    font-size: 13px;
+    min-width: 90px;
+  }
+
+  .buy-action-inputs {
+    gap: 12px;
+  }
+
+  .buy-action-inputs fieldset {
+    padding: 8px;
+  }
+
+  .buy-action-inputs input {
+    font-size: 15px;
+  }
+
+  .order-type label {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .margin-text {
+    font-size: 13px;
+  }
+
+  .buy-btn,
+  .cancel-btn {
+    font-size: 14px;
+    padding: 10px 8px;
+  }
+}
+
+/* Mobile (400px - 575px) */
+@media (max-width: 575.98px) {
+  .trade-popup-overlay {
+    padding: 8px;
+  }
+
+  .trade-popup {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .trade-popup-header h3 {
+    font-size: 16px;
+  }
+
+  .trade-popup-stock-info {
+    margin: 12px 0;
+  }
+
+  .trade-popup-stock-info .up,
+  .trade-popup-stock-info .down {
+    font-size: 14px;
+  }
+
+  .stock-price {
+    font-size: 17px;
+  }
+
+  .icon {
+    font-size: 16px;
+  }
+
+  .order-type-selector {
+    gap: 6px;
+    margin: 12px 0;
+  }
+
+  .order-type-option {
+    padding: 7px 8px;
+    font-size: 12px;
+    min-width: 80px;
+  }
+
+  .buy-action-inputs {
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .buy-action-inputs fieldset {
+    padding: 8px;
+  }
+
+  .buy-action-inputs legend {
+    font-size: 11px;
+  }
+
+  .buy-action-inputs input {
+    font-size: 14px;
+    margin-top: 3px;
+  }
+
+  .order-type {
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .order-type label {
+    font-size: 12px;
+    padding: 7px 8px;
+    gap: 6px;
+  }
+
+  .margin-text {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .action-buttons {
+    gap: 8px;
+  }
+
+  .buy-btn,
+  .cancel-btn {
+    padding: 9px 6px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .error-message,
+  .market-error-message {
+    font-size: 12px;
+    padding: 7px 10px;
+    margin-bottom: 8px;
+  }
+
+  .market-info-message {
+    font-size: 12px;
+    padding: 7px 10px;
+    margin-bottom: 8px;
+  }
+}
+
+/* Extra Small Mobile (≤399px) */
+@media (max-width: 399.98px) {
+  .trade-popup-overlay {
+    padding: 5px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+
+  .trade-popup {
+    padding: 14px;
+    border-radius: 8px;
+    max-height: 95vh;
+  }
+
+  .trade-popup-header {
+    margin-bottom: 12px;
+  }
+
+  .trade-popup-header h3 {
+    font-size: 15px;
+  }
+
+  .trade-popup-stock-info {
+    margin: 10px 0;
+    gap: 8px;
+  }
+
+  .trade-popup-stock-info .up,
+  .trade-popup-stock-info .down {
+    font-size: 13px;
+  }
+
+  .stock-price {
+    font-size: 16px;
+  }
+
+  .icon {
+    font-size: 14px;
+    margin-right: 3px;
+  }
+
+  .order-type-selector {
+    gap: 5px;
+    margin: 10px 0;
+  }
+
+  .order-type-option {
+    padding: 6px 6px;
+    font-size: 11px;
+    min-width: 70px;
+    border-radius: 5px;
+  }
+
+  .buy-action-inputs {
+    gap: 8px;
+    margin: 10px 0;
+  }
+
+  .buy-action-inputs fieldset {
+    padding: 6px;
+    border-radius: 6px;
+  }
+
+  .buy-action-inputs legend {
+    font-size: 10px;
+  }
+
+  .buy-action-inputs input {
+    font-size: 13px;
+  }
+
+  .order-type {
+    gap: 8px;
+    margin: 10px 0;
+  }
+
+  .order-type label {
+    font-size: 11px;
+    padding: 6px 6px;
+    gap: 5px;
+    min-width: 85px;
+  }
+
+  .trade-popup-actions {
+    margin-top: 12px;
+  }
+
+  .margin-text {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .action-buttons {
+    gap: 6px;
+  }
+
+  .buy-btn,
+  .cancel-btn {
+    padding: 8px 5px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  .error-message,
+  .market-error-message,
+  .market-info-message {
+    font-size: 11px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    border-radius: 5px;
+  }
+}
+
+/* Landscape Mobile Optimization */
+@media (max-height: 600px) and (orientation: landscape) {
+  .trade-popup-overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .trade-popup {
+    max-height: none;
+    margin: auto 0;
+  }
+
+  .trade-popup-header,
+  .trade-popup-stock-info,
+  .order-type-selector,
+  .buy-action-inputs,
+  .order-type,
+  .trade-popup-actions {
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
+}
+
+/* Touch device optimization */
+@media (hover: none) and (pointer: coarse) {
+  .buy-btn,
+  .cancel-btn,
+  .order-type-option,
+  .order-type label {
+    min-height: 44px;
+  }
+
+  .buy-action-inputs input {
+    padding: 8px 0;
+  }
 }

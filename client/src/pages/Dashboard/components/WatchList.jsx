@@ -1,7 +1,6 @@
 import React, { useState, useContext } from "react";
-import {ContextApi} from "@/context/ContextApi";
-import {GeneralContext} from "@/pages/Dashboard/components/GeneralContext";
-
+import { ContextApi } from "@/context/ContextApi";
+import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
 
 // import GeneralContext from "./GeneralContext";
 
@@ -17,9 +16,7 @@ import {
 // import { watchlist } from '@/pages/Dashboard/data/data';
 // import { DoughnutChart } from "./DoughnoutChart";
 
-
 const WatchList = () => {
-
   const { watchlist } = useContext(ContextApi);
 
   /* Commented out chart data until DoughnutChart component is used
@@ -52,7 +49,6 @@ const WatchList = () => {
   };
   */
 
-  
   return (
     <div className="watchlist-container">
       <div className="search-container">
@@ -101,19 +97,27 @@ const WatchListItem = ({ stock }) => {
           ) : (
             <KeyboardArrowUp className="down" />
           )}
-          <span className="price">{stock.price}</span>
+          <span
+            className="price"
+            style={{ color: stock.isDown ? "red" : "green", fontWeight: "600" }}
+          >
+            {stock.price}
+          </span>
         </div>
       </div>
-      {showWatchlistActions && <WatchListActions uid={stock.name} data={stock} />}
+      {showWatchlistActions && (
+        <WatchListActions uid={stock.name} data={stock} />
+      )}
     </li>
   );
+  
 };
 
-const WatchListActions = ({ uid , data }) => {
+const WatchListActions = ({ uid, data }) => {
   const { handleOpenBuyWindow } = useContext(GeneralContext);
 
   const handleBuyClick = () => {
-    handleOpenBuyWindow(uid ,data);
+    handleOpenBuyWindow(uid, data);
   };
 
   return (
@@ -126,7 +130,22 @@ const WatchListActions = ({ uid , data }) => {
           TransitionComponent={Grow}
           onClick={handleBuyClick}
         >
-          <button className="buy">Buy</button>
+          <button
+            style={{
+              background: "linear-gradient(135deg, #4caf50 0%, #43a047 100%)",
+              color: "#fff",
+              border: "1px solid #43a047",
+              borderRadius: "6px",
+              padding: "8px 16px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 2px 6px rgba(76, 175, 80, 0.3)",
+              transition: "all 0.2s ease-in-out",
+            }}
+          >
+            Buy
+          </button>
         </Tooltip>
         <Tooltip
           title="Sell (S)"
@@ -134,21 +153,68 @@ const WatchListActions = ({ uid , data }) => {
           arrow
           TransitionComponent={Grow}
         >
-          <button className="sell">Sell</button>
+          <button
+            style={{
+              background: "linear-gradient(135deg,rgb(244, 9, 28) 0%,rgb(251, 15, 15) 100%)",
+              color: "white",
+              border: "1px #ff5722",
+              borderRadius: "6px",
+              padding: "8px 16px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 2px 6px rgba(255, 87, 34, 0.3)",
+              transition: "all 0.2s ease-in-out",
+            }}
+          >
+            Sell
+          </button>
         </Tooltip>
-        <Tooltip    
+        <Tooltip
           title="Analytics (A)"
           placement="top"
           arrow
           TransitionComponent={Grow}
         >
-          <button className="action">
-            <BarChartOutlined className="icon" />
+          <button
+            style={{
+              background: "#fff",
+              color: "#5f6368",
+              border: "1.5px solid #dadce0",
+              borderRadius: "6px",
+              padding: "6px",
+              minWidth: "36px",
+              height: "36px",
+              // display: "flex",
+              // alignItems: "center",
+              // justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+              transition: "all 0.2s ease-in-out",
+            }}
+          >
+            <BarChartOutlined style={{ fontSize: "18px", color: "#5f6368" }} />
           </button>
         </Tooltip>
         <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}>
-          <button className="action">
-            <MoreHoriz className="icon" />
+          <button
+            style={{
+              background: "#fff",
+              color: "#5f6368",
+              border: "1.5px solid #dadce0",
+              borderRadius: "6px",
+              padding: "6px",
+              minWidth: "36px",
+              height: "36px",
+              // display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+              transition: "all 0.2s ease-in-out",
+            }}
+          >
+            <MoreHoriz style={{ fontSize: "18px", color: "#5f6368" }} />
           </button>
         </Tooltip>
       </span>

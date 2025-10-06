@@ -5,55 +5,57 @@ import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import "./BuyActionWindow.css";
 
-const BuyActionWindow = ({  data }) => {
-  const {handleCloseBuyWindow}=useContext(GeneralContext)
+const BuyActionWindow = ({ data }) => {
+  const { handleCloseBuyWindow } = useContext(GeneralContext);
   const [stockQuantity, setStockQuantity] = useState(1);
   const [stockPrice, setStockPrice] = useState(data?.price || 0.0);
-  const currency = 'USD';
+  const currency = "USD";
   const [orderType, setOrderType] = useState("DELIVERY");
+  const [orderMode, setOrderMode] = useState("MARKET");
+
 
   const orderTypes = [
     { value: "INTRADAY", label: "Intraday" },
     { value: "DELIVERY", label: "Delivery" },
-    { value: "FNO", label: "F&O" }
+    { value: "FNO", label: "F&O" },
   ];
 
   // Market hours check (9:15 AM to 3:30 PM IST, Monday to Friday)
   // const isMarketOpen = () => {
   //   const now = new Date();
   //   const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-    
+
   //   const day = istTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   //   const hours = istTime.getHours();
   //   const minutes = istTime.getMinutes();
   //   const currentTime = hours * 60 + minutes;
-    
+
   //   // Market is closed on weekends
   //   if (day === 0 || day === 6) {
   //     return false;
   //   }
-    
+
   //   // Market hours: 9:15 AM (555 minutes) to 3:30 PM (930 minutes)
   //   const marketOpenTime = 9 * 60 + 15; // 9:15 AM
   //   const marketCloseTime = 15 * 60 + 30; // 3:30 PM
-    
+
   //   return currentTime >= marketOpenTime && currentTime <= marketCloseTime;
   // };
 
   const [marketError, setMarketError] = useState("");
 
-  const {getToken} = useAuth();
+  const { getToken } = useAuth();
 
   const orderData = {
-  symbol: data.symbol,
-  mode: "BUY",
-  name: data.name,
-  quantity: stockQuantity,
-  purchasePrice: stockPrice,
-  actualPrice: data.price,
-  changePercent: data.changePercent,
-  orderType: orderType,
-  currency
+    symbol: data.symbol,
+    mode: "BUY",
+    name: data.name,
+    quantity: stockQuantity,
+    purchasePrice: stockPrice,
+    actualPrice: data.price,
+    changePercent: data.changePercent,
+    orderType: orderType,
+    currency,
   };
 
   const [isLoading, setIsLoading] = useState(false);
@@ -73,9 +75,9 @@ const BuyActionWindow = ({  data }) => {
   //     const now = new Date();
   //     const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
   //     const day = istTime.getDay();
-      
+
   //     const orderTypeLabel = orderType === "INTRADAY" ? "Intraday" : orderType === "DELIVERY" ? "Delivery" : "F&O";
-      
+
   //     if (day === 0 || day === 6) {
   //       return `${orderTypeLabel} orders are not available on weekends. Market is closed.`;
   //     } else {
@@ -87,22 +89,23 @@ const BuyActionWindow = ({  data }) => {
 
   // Get valuable market info message
   const getMarketInfoMessage = () => {
-    if (orderType === "INTRADAY" || orderType === "DELIVERY" || orderType === "FNO") {
+    if (
+      orderType === "INTRADAY" ||
+      orderType === "DELIVERY" ||
+      orderType === "FNO"
+    ) {
       // const now = new Date();
       // const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
       // const day = istTime.getDay();
       // const hours = istTime.getHours();
       // const minutes = istTime.getMinutes();
       // const currentTime = hours * 60 + minutes;
-      
       // const orderTypeLabel = orderType === "INTRADAY" ? "Intraday" : orderType === "DELIVERY" ? "Delivery" : "F&O";
-      
       // if (isMarketOpen()) {
       //   const closeTime = 15 * 60 + 30; // 3:30 PM
       //   const remainingMinutes = closeTime - currentTime;
       //   const remainingHours = Math.floor(remainingMinutes / 60);
       //   const remainingMins = remainingMinutes % 60;
-        
       //   return `🟢 Market is OPEN - ${orderTypeLabel} orders available (${remainingHours}h ${remainingMins}m until closing at 3:30 PM)`;
       // } else if (day === 0 || day === 6) {
       //   // Weekend - show next Monday opening
@@ -116,7 +119,6 @@ const BuyActionWindow = ({  data }) => {
       //     const minutesUntilOpen = openTime - currentTime;
       //     const hoursUntilOpen = Math.floor(minutesUntilOpen / 60);
       //     const minsUntilOpen = minutesUntilOpen % 60;
-          
       //     return `🔴 Market CLOSED - ${orderTypeLabel} orders unavailable until ${hoursUntilOpen}h ${minsUntilOpen}m (opens 9:15 AM)`;
       //   } else {
       //     // After market closes
@@ -132,14 +134,14 @@ const BuyActionWindow = ({  data }) => {
       setIsLoading(true);
       setError(null);
       setMarketError("");
-      
+
       // Check market hours restriction for all order types
       // if (!isOrderTypeAllowed()) {
       //   setMarketError(getMarketStatusMessage());
       //   setIsLoading(false);
       //   return;
       // }
-      
+
       const authToken = await getToken();
       if (!authToken) {
         throw new Error("Authentication token not available");
@@ -150,19 +152,20 @@ const BuyActionWindow = ({  data }) => {
 
       const orderPayload = {
         ...orderData,
+        orderMode,    // "Market" or LIMIT
         totalAmount,
         status: "PENDING",
-        placedAt: new Date().toISOString()
+        placedAt: new Date().toISOString(),
       };
 
       const response = await axios.post(
         "http://localhost:8000/api/order/create",
-        orderPayload,   
+        orderPayload,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
-          }
+          },
         }
       );
 
@@ -171,7 +174,11 @@ const BuyActionWindow = ({  data }) => {
       handleCloseBuyWindow();
       // You can dispatch an event or call a callback to refresh the orders list
     } catch (error) {
-      setError(error.response?.data?.message || error.message || "Failed to create order");
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to create order"
+      );
       console.error("Error creating order:", error);
     } finally {
       setIsLoading(false);
@@ -202,14 +209,22 @@ const BuyActionWindow = ({  data }) => {
             ) : (
               <span className="icon">↑</span>
             )}
-            {Math.abs(data.changePercent)}% 
+            {Math.abs(data.changePercent)}%
           </p>
-          <span className="stock-price">{currency === 'USD' ? '$' : '₹'}{data.price}</span>
+          <span className="stock-price">
+            {currency === "USD" ? "$" : "₹"}
+            {data.price}
+          </span>
         </div>
 
         <div className="order-type-selector">
           {orderTypes.map((type) => (
-            <label key={type.value} className={`order-type-option ${orderType === type.value ? 'selected' : ''}`}>
+            <label
+              key={type.value}
+              className={`order-type-option ${
+                orderType === type.value ? "selected" : ""
+              }`}
+            >
               <input
                 type="radio"
                 name="orderType"
@@ -248,18 +263,45 @@ const BuyActionWindow = ({  data }) => {
           </fieldset>
         </div>
 
+        <div className="order-type">
+          <label>
+            <input
+              type="radio"
+              name="orderMode"
+              value="MARKET"
+              checked={orderMode === "MARKET"}
+              onChange={() => setOrderMode("MARKET")}
+            />
+            Market
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="orderMode"
+              value="LIMIT"
+              checked={orderMode === "LIMIT"}
+              onChange={() => setOrderMode("LIMIT")}
+            />
+            Limit
+          </label>
+        </div>
+
         <div className="trade-popup-actions">
           {error && <div className="error-message">{error}</div>}
-          {marketError && <div className="market-error-message">{marketError}</div>}
-          {getMarketInfoMessage() && <div className="market-info-message">{getMarketInfoMessage()}</div>}
+          {marketError && (
+            <div className="market-error-message">{marketError}</div>
+          )}
+          {getMarketInfoMessage() && (
+            <div className="market-info-message">{getMarketInfoMessage()}</div>
+          )}
           <span className="margin-text">
-            {currency === 'USD' ? 'Margin (USD): $' : 'Margin (INR): ₹'}
+            {currency === "USD" ? "Margin (USD): $" : "Margin (INR): ₹"}
             {(Number(stockQuantity) * Number(stockPrice) * 0.2).toFixed(2)}
           </span>
 
           <div className="action-buttons">
             <button
-              className={`buy-btn ${isLoading ? "loading" : ""} `}     //${!isOrderTypeAllowed() ? "disabled" : ""}
+              className={`buy-btn ${isLoading ? "loading" : ""} `} //${!isOrderTypeAllowed() ? "disabled" : ""}
               onClick={handleBuyClick}
               // disabled={isLoading || !stockQuantity || !stockPrice || !isOrderTypeAllowed()}
             >

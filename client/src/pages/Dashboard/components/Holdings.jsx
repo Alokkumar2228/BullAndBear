@@ -83,9 +83,6 @@ const Holdings = () => {
     return currVal.toFixed(2);
   };
 
-
-  
-
   const profit = (calActualValue() - calInvestment()).toFixed(2);
   const profitPercentage = ((profit / calInvestment()) * 100).toFixed(2);
 
@@ -276,7 +273,19 @@ const Holdings = () => {
 
                         <td className="action-cell">
                           <button
-                            className="sell-button"
+                            style={{
+                              background:
+                              "linear-gradient(135deg,rgb(243, 9, 9) 0%,rgb(232, 6, 6) 100%)",
+                              color: "white",
+                              border: "1px solid #f4511e",
+                              borderRadius: "6px",
+                              padding: "8px 16px",
+                              fontSize: "14px",
+                              fontWeight: "600",
+                              cursor: "pointer",
+                              boxShadow: "0 2px 8px rgba(255, 87, 34, 0.3)",
+                              transition: "all 0.2s ease-in-out",
+                            }}
                             onClick={() => handleSell(stock)}
                           >
                             Sell

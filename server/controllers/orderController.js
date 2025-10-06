@@ -1,14 +1,13 @@
-
-import Order from '../models/OrderModel.js';
-import User from '../models/UserModel.js';
-import { getUsdInrRate } from '../utils/forex.js';
+import Order from "../models/OrderModel.js";
+import User from "../models/UserModel.js";
+import { getUsdInrRate } from "../utils/forex.js";
 
 // Logging utility
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === "development";
 const logger = {
   debug: (...args) => isDevelopment && console.log(...args),
   error: (...args) => console.error(...args),
-  info: (...args) => isDevelopment && console.info(...args)
+  info: (...args) => isDevelopment && console.info(...args),
 };
 
 // Helper function to calculate settlement date (T+1)
@@ -28,7 +27,7 @@ const isWithinMarketHours = () => {
   const hours = now.getHours();
   const minutes = now.getMinutes();
   const timeInMinutes = hours * 60 + minutes;
-  
+
   // Market hours: 9:15 AM to 3:30 PM
   return timeInMinutes >= 555 && timeInMinutes <= 930;
 };
@@ -38,30 +37,52 @@ export const createOrder = async (req, res) => {
   try {
     const userId = req.user?.id; // comes from clerkAuth middleware
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No user ID found" });
     }
 
-    const { 
-      symbol, 
-      mode, 
-      quantity, 
-      purchasePrice, 
-      actualPrice, 
-      name, 
+    const {
+      symbol,
+      mode,
+      quantity,
+      purchasePrice,
+      actualPrice,
+      name,
       changePercent,
       orderType = "DELIVERY",
       status = "PENDING",
       totalAmount,
-      currency = "USD"
+      currency = "USD",
+      orderMode = "Market", // <-- new field for Market vs Limit
     } = req.body;
 
-
-    if (!symbol || !mode || !quantity || !purchasePrice || !actualPrice || !name || !changePercent || !totalAmount) {
-      return res.status(400).json({ 
+    if (
+      !symbol ||
+      !mode ||
+      !quantity ||
+      !purchasePrice ||
+      !actualPrice ||
+      !name ||
+      !changePercent ||
+      !totalAmount
+    ) {
+      return res.status(400).json({
         message: "All fields are required",
-        missing: Object.entries({ symbol, mode, quantity, purchasePrice, actualPrice, name, changePercent, totalAmount })
-          .filter(([_, value]) => value == null || value === undefined || value === '')
-          .map(([key]) => key)
+        missing: Object.entries({
+          symbol,
+          mode,
+          quantity,
+          purchasePrice,
+          actualPrice,
+          name,
+          changePercent,
+          totalAmount,
+        })
+          .filter(
+            ([_, value]) => value == null || value === undefined || value === ""
+          )
+          .map(([key]) => key),
       });
     }
 
@@ -73,11 +94,12 @@ export const createOrder = async (req, res) => {
 
     // Verify totalAmount calculation in the provided currency
     const calculatedTotal = numericQuantity * numericPurchasePrice;
-    if (Math.abs(calculatedTotal - numericTotalAmount) > 0.01) { // Allow for small floating point differences
-      return res.status(400).json({ 
+    if (Math.abs(calculatedTotal - numericTotalAmount) > 0.01) {
+      // Allow for small floating point differences
+      return res.status(400).json({
         message: "Invalid total amount",
         expected: calculatedTotal,
-        received: numericTotalAmount
+        received: numericTotalAmount,
       });
     }
 
@@ -87,26 +109,64 @@ export const createOrder = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Convert required amount to INR if price is in USD.
-    // Deduction should be based on actual trade price.
-    const normalizedCurrency = (currency || 'USD').toString().toUpperCase();
-    const usdInrRate = await getUsdInrRate();
-    const amountAtFillInGivenCurrency = numericQuantity * numericActualPrice;
-    const requiredAmountInInr = normalizedCurrency === 'USD'
-      ? amountAtFillInGivenCurrency * usdInrRate
-      : amountAtFillInGivenCurrency;
+    // For LIMIT orders → use purchasePrice
+    // For MARKET orders → use actualPrice
+    const priceToUse =
+      orderMode === "LIMIT" ? numericPurchasePrice : numericActualPrice;
+    const normalizedCurrency = (currency || 'USD').toUpperCase();
+    const usdInrRate = await getUsdInrRate(); 
+    const amountAtFillInGivenCurrency = numericQuantity * priceToUse;
+    const requiredAmountInInr =
+      normalizedCurrency === "USD"
+        ? amountAtFillInGivenCurrency * usdInrRate
+        : amountAtFillInGivenCurrency;
 
-    if (user.balance < requiredAmountInInr) {
+    // Only block if executed immediately (MARKET or LIMIT that executes now)
+    const willExecuteNow =
+      orderMode === "MARKET" ||
+      (orderMode === "LIMIT" && numericPurchasePrice >= numericActualPrice);
+
+    if (willExecuteNow && user.balance < requiredAmountInInr) {
       return res.status(400).json({
-        message: `Insufficient balance. Required ₹${requiredAmountInInr.toFixed(2)}, Available ₹${Number(user.balance).toFixed(2)}`
+        message: `Insufficient balance. Required ₹${requiredAmountInInr.toFixed(
+          2
+        )}, Available ₹${Number(user.balance).toFixed(2)}`,
       });
     }
 
-
     // Additional validations for order types
-    if (orderType === "INTRADAY" && !isWithinMarketHours()) {
-      return res.status(400).json({ message: "Intraday orders can only be placed during market hours" });
+    // if (orderType === "INTRADAY" && !isWithinMarketHours()) {
+    //   return res.status(400).json({
+    //     message: "Intraday orders can only be placed during market hours",
+    //   });
+    // }
+
+    // ---------------------------
+    // Market vs Limit Logic
+    // ---------------------------
+    let orderStatus = "PENDING";
+    let executedAt = null;
+    let deductAmount = 0;
+
+    if (orderMode === "MARKET") {
+      orderStatus = "EXECUTED";
+      executedAt = new Date();
+      deductAmount = numericQuantity * numericActualPrice * usdInrRate;
+    }else if (orderMode === "LIMIT") {
+      // Always block funds upfront
+      deductAmount = numericQuantity * numericPurchasePrice * usdInrRate;
+    
+      if (numericPurchasePrice >= numericActualPrice) {
+        // Price is favorable, execute immediately
+        orderStatus = "EXECUTED";
+        executedAt = new Date();
+      } else {
+        // Otherwise, keep pending
+        orderStatus = "PENDING";
+        executedAt = null;
+      }
     }
+    
 
     const newOrder = new Order({
       userId,
@@ -114,30 +174,42 @@ export const createOrder = async (req, res) => {
       name,
       mode,
       quantity,
-      purchasePrice,
-      totalAmount,
-      actualPrice,
+      quantity: numericQuantity,
+      purchasePrice: numericPurchasePrice,
+      totalAmount: numericQuantity * numericPurchasePrice,
+      actualPrice: numericActualPrice,
       changePercent,
       orderType,
       currency,
       // Automatically set status and executedAt
-      status: "EXECUTED",
-      executedAt: new Date(),
+      status: orderStatus,
+      executedAt: executedAt,
       // Set settlement details for delivery orders
+      
       ...(orderType === "DELIVERY" && {
         settlementDate: calculateSettlementDate(),
         isSettled: false,
-        inDematAccount: false
-      })
+        inDematAccount: false,
+      }),
     });
 
     const savedOrder = await newOrder.save();
 
     // Deduct user balance now that order is placed
-    user.balance = Number(user.balance) - requiredAmountInInr;
-    await user.save();
+    // Deduct user balance now (both executed and pending LIMIT orders require balance lock)
+    if (deductAmount > 0) {
+      if (user.balance < deductAmount) {
+        return res.status(400).json({
+          message: `Insufficient balance. Required ₹${deductAmount.toFixed(
+            2
+          )}, Available ₹${Number(user.balance).toFixed(2)}`,
+        });
+      }
+      user.balance -= deductAmount;  // Reserve balance immediately
+      await user.save();
+    }
 
-    res.status(201).json({ order: savedOrder, newBalance: user.balance });           
+    res.status(201).json({ order: savedOrder, newBalance: user.balance });
   } catch (err) {
     res
       .status(500)
@@ -150,15 +222,15 @@ export const getOrderById = async (req, res) => {
   try {
     // console.log('Request user object:', req.user);
     // console.log('Request headers:', req.headers);
-    
+
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: "Unauthorized: No user ID found",
-        debug: { 
+        debug: {
           user: req.user,
-          headers: req.headers
-        }
+          headers: req.headers,
+        },
       });
     }
 
@@ -204,19 +276,23 @@ export const updateOrderStatus = async (req, res) => {
   try {
     const userId = req.user.id;
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No user ID found" });
     }
 
     const { orderId, status } = req.body;
     if (!orderId || !status) {
-      return res.status(400).json({ message: "Order ID and status are required" });
+      return res
+        .status(400)
+        .json({ message: "Order ID and status are required" });
     }
 
     const updatedOrder = await Order.findOneAndUpdate(
       { _id: orderId, userId }, // Ensure user owns the order
-      { 
+      {
         status,
-        executedAt: status === 'EXECUTED' ? new Date() : null
+        executedAt: status === "EXECUTED" ? new Date() : null,
       },
       { new: true }
     );
@@ -227,7 +303,9 @@ export const updateOrderStatus = async (req, res) => {
 
     res.status(200).json(updatedOrder);
   } catch (err) {
-    res.status(500).json({ message: "Error updating order", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error updating order", error: err.message });
   }
 };
 
@@ -236,7 +314,9 @@ export const squareOffIntraday = async (req, res) => {
   try {
     const userId = req.user.id;
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No user ID found" });
     }
 
     const currentTime = new Date();
@@ -245,7 +325,9 @@ export const squareOffIntraday = async (req, res) => {
 
     // Only run square-off after 3:20 PM (market closing at 3:30 PM)
     if (hours < 15 || (hours === 15 && minutes < 20)) {
-      return res.status(400).json({ message: "Square-off can only be done near market close" });
+      return res
+        .status(400)
+        .json({ message: "Square-off can only be done near market close" });
     }
 
     // Find all open intraday positions for this user
@@ -253,7 +335,7 @@ export const squareOffIntraday = async (req, res) => {
       userId,
       orderType: "INTRADAY",
       status: "EXECUTED",
-      mode: "BUY" // Square off only buy positions
+      mode: "BUY", // Square off only buy positions
     });
 
     const squareOffPromises = intradayPositions.map(async (position) => {
@@ -270,7 +352,7 @@ export const squareOffIntraday = async (req, res) => {
         changePercent: position.changePercent,
         orderType: "INTRADAY",
         status: "EXECUTED",
-        executedAt: new Date()
+        executedAt: new Date(),
       });
 
       await sellOrder.save();
@@ -280,7 +362,9 @@ export const squareOffIntraday = async (req, res) => {
     const squaredOffOrders = await Promise.all(squareOffPromises);
     res.status(200).json(squaredOffOrders);
   } catch (err) {
-    res.status(500).json({ message: "Error squaring off positions", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error squaring off positions", error: err.message });
   }
 };
 
@@ -289,7 +373,9 @@ export const processSettlements = async (req, res) => {
   try {
     const userId = req.user.id;
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No user ID found" });
     }
 
     const today = new Date();
@@ -300,7 +386,7 @@ export const processSettlements = async (req, res) => {
       userId,
       orderType: "DELIVERY",
       isSettled: false,
-      settlementDate: { $lte: today }
+      settlementDate: { $lte: today },
     });
 
     if (settlingOrders.length === 0) {
@@ -316,7 +402,9 @@ export const processSettlements = async (req, res) => {
     const settledOrders = await Promise.all(settlementPromises);
     res.status(200).json(settledOrders);
   } catch (err) {
-    res.status(500).json({ message: "Error processing settlements", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error processing settlements", error: err.message });
   }
 };
 
@@ -325,24 +413,30 @@ export const deleteOrder = async (req, res) => {
   try {
     const userId = req.user.id;
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: No user ID found" });
     }
 
     const orderId = req.params.id;
-    
+
     const deletedOrder = await Order.findOneAndDelete({
       _id: orderId,
-      userId // Ensure user owns the order
+      userId, // Ensure user owns the order
     });
 
     if (!deletedOrder) {
-      return res.status(404).json({ message: "Order not found or unauthorized" });
+      return res
+        .status(404)
+        .json({ message: "Order not found or unauthorized" });
     }
 
     console.log(`Order ${orderId} deleted successfully by user ${userId}`);
     res.status(200).json({ message: "Order deleted successfully" });
   } catch (err) {
     console.error("Delete order error:", err);
-    res.status(500).json({ message: "Error deleting order", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting order", error: err.message });
   }
 };

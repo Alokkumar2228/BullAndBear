@@ -19,7 +19,7 @@ body {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 10px;
+  padding: 0 20px;
 }
 
 /* Auth Container */
@@ -96,9 +96,14 @@ body {
   padding: 60px 50px;
   display: flex;
   align-items: center;
+  justify-content: center;
   margin-bottom: 6rem;
 }
 
+.features-section img {
+  max-width: 100%;
+  height: auto;
+}
 
 /* Stats */
 .stats {
@@ -143,6 +148,7 @@ body {
 
 .form-header {
   text-align: center;
+  margin-bottom: 30px;
 }
 
 .form-title {
@@ -150,6 +156,7 @@ body {
   font-weight: 700;
   color: #2c3e50;
   line-height: 1.3;
+  margin-bottom: 10px;
 }
 
 .form-subtitle {
@@ -175,22 +182,18 @@ body {
   width: 100%;
 }
 
-/* .form-group {
-  margin-bottom: 24px;
-} */
-
 .form-label {
   display: block;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 2px;
+  margin-bottom: 8px;
   font-size: 0.95rem;
   letter-spacing: 0.25px;
 }
 
 .form-input {
   width: 100%;
-  padding: 10px;
+  padding: 14px;
   border: 2px solid #e9ecef;
   border-radius: 10px;
   font-size: 1rem;
@@ -248,10 +251,15 @@ body {
   font-weight: 500;
 }
 
+/* Clerk Auth Buttons */
+.clerk-auth-buttons {
+  width: 100%;
+}
+
 /* Submit Button */
 .submit-btn {
   width: 100%;
-  padding: 10px;
+  padding: 14px 20px;
   background: linear-gradient(135deg, #0052ff 0%, #00a0f0 100%);
   color: white;
   border: none;
@@ -337,7 +345,7 @@ body {
   color: #6c757d;
   text-align: center;
   line-height: 1.5;
-  margin-bottom: 20px;
+  margin-top: 20px;
 }
 
 .terms-text a {
@@ -354,6 +362,7 @@ body {
 .form-footer {
   border-top: 1px solid #e9ecef;
   padding-top: 30px;
+  margin-top: 20px;
 }
 
 .divider {
@@ -411,13 +420,20 @@ body {
   box-shadow: 0 4px 12px rgba(0, 82, 255, 0.3);
 }
 
+/* Signed In Section */
+.signed-in-section {
+  display: flex;
+  justify-content: center;
+  padding: 30px 0;
+}
+
 /* Footer */
 .auth-footer {
   position: relative;
   z-index: 1;
   padding: 20px 0;
   text-align: center;
-  color: rgba(255, 255, 255, 0.8);
+  color: #6c757d;
 }
 
 .footer-text {
@@ -426,6 +442,8 @@ body {
 }
 
 /* Responsive Design */
+
+/* Tablets and below (1024px) */
 @media (max-width: 1024px) {
   .auth-wrapper {
     flex-direction: column;
@@ -436,15 +454,196 @@ body {
     flex: none;
     padding: 40px 30px;
   }
+
+  .features-section {
+    margin-bottom: 0;
+  }
   
   .main-title {
     font-size: 2.5rem;
   }
   
-  .features-title {
-    font-size: 2rem;
+  .form-title {
+    font-size: 1.75rem;
   }
 }
 
-  
- 
+/* Mobile devices (768px) */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+
+  .auth-main {
+    padding: 20px 0 40px;
+  }
+
+  .auth-wrapper {
+    border-radius: 15px;
+    min-height: auto;
+  }
+
+  .features-section,
+  .form-section {
+    padding: 30px 20px;
+  }
+
+  .form-header {
+    margin-bottom: 25px;
+  }
+
+  .form-title {
+    font-size: 1.5rem;
+  }
+
+  .form-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .main-title {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .submit-btn {
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
+
+  .toggle-btn {
+    padding: 10px 24px;
+    font-size: 0.9rem;
+  }
+
+  .form-footer {
+    padding-top: 25px;
+  }
+
+  .stats {
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .stat-item {
+    flex: 1 1 calc(50% - 10px);
+  }
+}
+
+/* Small mobile devices (480px) */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 10px;
+  }
+
+  .auth-main {
+    padding: 15px 0 30px;
+  }
+
+  .auth-wrapper {
+    border-radius: 10px;
+  }
+
+  .features-section,
+  .form-section {
+    padding: 25px 15px;
+  }
+
+  .form-container {
+    max-width: 100%;
+  }
+
+  .form-header {
+    margin-bottom: 20px;
+  }
+
+  .form-title {
+    font-size: 1.35rem;
+  }
+
+  .form-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .main-title {
+    font-size: 1.75rem;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+  }
+
+  .form-input {
+    padding: 12px;
+    font-size: 0.95rem;
+  }
+
+  .submit-btn {
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+  }
+
+  .toggle-btn {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    width: 100%;
+  }
+
+  .terms-text {
+    font-size: 0.8rem;
+  }
+
+  .toggle-text {
+    font-size: 0.9rem;
+  }
+
+  .form-footer {
+    padding-top: 20px;
+    margin-top: 15px;
+  }
+
+  .auth-footer {
+    padding: 15px 0;
+  }
+
+  .footer-text {
+    font-size: 0.8rem;
+  }
+
+  .stat-number {
+    font-size: 1.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+  }
+}
+
+/* Extra small devices (360px) */
+@media (max-width: 360px) {
+  .form-title {
+    font-size: 1.25rem;
+  }
+
+  .form-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .submit-btn {
+    font-size: 0.9rem;
+    padding: 11px 14px;
+  }
+
+  .toggle-btn {
+    font-size: 0.8rem;
+    padding: 9px 18px;
+  }
+
+  .features-section,
+  .form-section {
+    padding: 20px 12px;
+  }
+}

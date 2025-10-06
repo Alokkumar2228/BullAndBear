@@ -1,10 +1,25 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 function Hero() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreen = () => setIsMobile(window.innerWidth < 768);
+    checkScreen(); // initial check
+    window.addEventListener("resize", checkScreen);
+    return () => window.removeEventListener("resize", checkScreen);
+  }, []);
+
   return (
     <div className="container">
-      <div className="row p-5 mt-5 mb-5">
-        <h1 className="fs-2 text-center">
+      <div
+        className="row p-5 mt-5 mb-5"
+        style={isMobile ? { padding: "2rem 1rem", marginTop: "2rem", marginBottom: "2rem" } : {}}
+      >
+        <h1
+          className="fs-2 text-center"
+          style={isMobile ? { fontSize: "1.5rem", lineHeight: "1.4" } : {}}
+        >
           We pioneered the discount broking model in India
           <br />
           Now, we are breaking ground with our technology.
@@ -13,9 +28,15 @@ function Hero() {
 
       <div
         className="row p-5 mt-5 border-top text-muted"
-        style={{ lineHeight: "1.8", fontSize: "1.2em" }}
+        style={{
+          lineHeight: "1.8",
+          fontSize: "1.2em",
+          ...(isMobile
+            ? { padding: "1rem", marginTop: "2rem", flexDirection: "column" }
+            : {}),
+        }}
       >
-        <div className="col-6 p-5">
+        <div className="col-6 p-5" style={isMobile ? { padding: "1rem", width: "100%" } : {}}>
           <p>
             We kick-started operations on the 15th of August, 2010 with the goal
             of breaking all barriers that traders and investors face in India in
@@ -33,7 +54,7 @@ function Hero() {
             all Indian retail trading volumes.
           </p>
         </div>
-        <div className="col-6 p-5">
+        <div className="col-6 p-5" style={isMobile ? { padding: "1rem", width: "100%" } : {}}>
           <p>
             In addition, we run a number of popular open online educational and
             community initiatives to empower retail traders and investors.
