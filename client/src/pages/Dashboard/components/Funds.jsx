@@ -5,11 +5,19 @@ import { GeneralContext } from "./GeneralContext";
 
 const Funds = () => {
   const {getToken} = useAuth();
-  const {userFundData,transactionData,findTransactionData,findUserFundsData} = useContext(GeneralContext);
+  const {userFundData,transactionData,
+    findTransactionData,findUserFundsData,withdrawFund} = useContext(GeneralContext);
 
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [amount, setAmount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Withdraw form states
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
 
   // console.log("fund" , userFundData);
 
@@ -37,6 +45,16 @@ const Funds = () => {
     });
   };
 
+  const formatTime = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true, // set to false for 24-hour format
+  });
+};
+
   const handleAddFunds = async() => {
      const authToken = await getToken();
     const addAmount = parseFloat(amount);
@@ -45,9 +63,60 @@ const Funds = () => {
     }
   };
 
+  const handleWithdraw = async() => {
+    const withdrawAmountValue = parseFloat(withdrawAmount);
+    
+    if (withdrawAmountValue && withdrawAmountValue > 0 && 
+        withdrawAmountValue <= fundsData.totalBalance &&
+        accountNumber && ifscCode) {
+      
+      setIsProcessing(true);
+      
+      // Add your withdraw API call here
+      const data = {
+        amount: withdrawAmountValue,
+        accountNumber,
+        ifscCode,
+      };
+
+      const response = await withdrawFund(data);
+
+      console.log(response);
+
+      // Show loading for 2 seconds
+      setTimeout(async () => {
+        if(response && response.success){
+          await findUserFundsData();
+          await findTransactionData();
+          setIsProcessing(false);
+          handleCloseWithdrawModal();
+        } else {
+          setIsProcessing(false);
+        }
+      }, 2000);
+      
+    }
+  };
+
   const handleCloseModal = () => {
     setShowAddFundsModal(false);
     setAmount('');
+  };
+
+  const handleCloseWithdrawModal = () => {
+    setShowWithdrawModal(false);
+    setWithdrawAmount('');
+    setAccountNumber('');
+    setIfscCode('');
+    setIsProcessing(false);
+  };
+
+  const isWithdrawValid = () => {
+    const withdrawAmountValue = parseFloat(withdrawAmount);
+    return withdrawAmountValue > 0 && 
+           withdrawAmountValue <= fundsData.totalBalance &&
+           accountNumber.length >= 9 &&
+           ifscCode.length === 11;
   };
 
   return (
@@ -68,7 +137,10 @@ const Funds = () => {
             </svg>
             <span style={styles.btnText}>Add Funds</span>
           </button>
-          <button style={styles.secondaryBtn}>
+          <button 
+            onClick={() => setShowWithdrawModal(true)}
+            style={styles.secondaryBtn}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -160,7 +232,7 @@ const Funds = () => {
                       {transaction.description}
                     </div>
                     <div style={styles.transactionMeta}>
-                      {formatDate(transaction.date)} • {transaction.time}
+                      {formatDate(transaction.createdAt)} • {formatTime(transaction.createdAt)}
                     </div>
                     <div style={styles.transactionId}>
                       ID: {transaction.transaction_id}
@@ -249,6 +321,149 @@ const Funds = () => {
           </div>
         </div>
       )}
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && (
+        <div style={styles.modalOverlay} onClick={!isProcessing ? handleCloseWithdrawModal : undefined}>
+          <div style={styles.withdrawModal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.withdrawModalHeader}>
+              <h3 style={styles.withdrawModalTitle}>Withdraw Funds</h3>
+              <p style={styles.withdrawModalSubtitle}>Enter your bank details to withdraw funds</p>
+              {!isProcessing && (
+                <button 
+                  onClick={handleCloseWithdrawModal}
+                  style={styles.withdrawCloseButton}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+            
+            <div style={styles.withdrawModalBody}>
+              <div style={styles.availableBalance}>
+                <span style={styles.balanceLabel}>Available Balance</span>
+                <span style={styles.balanceAmount}>{formatCurrency(fundsData.totalBalance)}</span>
+              </div>
+
+              <div style={styles.withdrawInputGroup}>
+                <label style={styles.withdrawInputLabel}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{marginRight: '8px'}}>
+                    <rect x="2" y="5" width="20" height="14" rx="2" stroke="#3b82f6" strokeWidth="2"/>
+                    <path d="M2 10h20" stroke="#3b82f6" strokeWidth="2"/>
+                  </svg>
+                  Bank Account Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter your account number"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  style={styles.withdrawInput}
+                  maxLength="18"
+                  disabled={isProcessing}
+                />
+                {accountNumber && accountNumber.length < 9 && (
+                  <div style={styles.errorText}>
+                    Account number must be at least 9 digits
+                  </div>
+                )}
+              </div>
+
+              <div style={styles.withdrawInputGroup}>
+                <label style={styles.withdrawInputLabel}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{marginRight: '8px'}}>
+                    <path d="M21 10H3M16 6v12M8 6v12M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" stroke="#3b82f6" strokeWidth="2"/>
+                  </svg>
+                  IFSC Code
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., SBIN0001234"
+                  value={ifscCode}
+                  onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                  style={styles.withdrawInput}
+                  maxLength="11"
+                  disabled={isProcessing}
+                />
+                {ifscCode && ifscCode.length !== 11 && (
+                  <div style={styles.errorText}>
+                    IFSC code must be exactly 11 characters
+                  </div>
+                )}
+              </div>
+
+              <div style={styles.withdrawInputGroup}>
+                <label style={styles.withdrawInputLabel}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{marginRight: '8px'}}>
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  Withdrawal Amount
+                </label>
+                <input
+                  type="number"
+                  placeholder="₹ 0.00"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  style={styles.withdrawInput}
+                  max={fundsData.totalBalance}
+                  disabled={isProcessing}
+                />
+                <div style={styles.inputHelperText}>
+                  Maximum withdrawal: {formatCurrency(fundsData.totalBalance)}
+                </div>
+                {withdrawAmount && parseFloat(withdrawAmount) > fundsData.totalBalance && (
+                  <div style={styles.errorText}>
+                    Amount exceeds available balance
+                  </div>
+                )}
+              </div>
+
+              <div style={styles.withdrawModalActions}>
+                <button 
+                  onClick={handleCloseWithdrawModal}
+                  style={styles.withdrawCancelButton}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleWithdraw}
+                  style={{
+                    ...styles.withdrawConfirmButton,
+                    opacity: (isWithdrawValid() && !isProcessing) ? 1 : 0.5,
+                    cursor: (isWithdrawValid() && !isProcessing) ? 'pointer' : 'not-allowed'
+                  }}
+                  disabled={!isWithdrawValid() || isProcessing}
+                >
+                  {isProcessing ? (
+                    <span style={styles.processingText}>
+                      Processing
+                      <span style={styles.dots}>
+                        <span style={{...styles.dot, animationDelay: '0s'}}>.</span>
+                        <span style={{...styles.dot, animationDelay: '0.2s'}}>.</span>
+                        <span style={{...styles.dot, animationDelay: '0.4s'}}>.</span>
+                      </span>
+                    </span>
+                  ) : (
+                    'Confirm Withdraw'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <style>
+        {`
+          @keyframes dotPulse {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+          }
+        `}
+      </style>
     </div>
   );
 };
@@ -620,7 +835,151 @@ const styles = {
     color: '#ef4444',
     marginTop: '6px',
     fontWeight: '500'
+  },
+  // Withdraw Modal Styles
+  withdrawModal: {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    width: '90%',
+    maxWidth: '420px',
+    maxHeight: '85vh',
+    overflow: 'auto',
+    boxShadow: '0 20px 40px -12px rgba(59, 130, 246, 0.25)',
+    border: '1px solid #dbeafe'
+  },
+  withdrawModalHeader: {
+    background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)',
+    padding: '20px 24px 18px',
+    position: 'relative',
+    textAlign: 'center',
+    borderBottom: '1px solid #bfdbfe'
+  },
+  withdrawIconWrapper: {
+    width: '44px',
+    height: '44px',
+    backgroundColor: 'white',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 12px',
+    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
+  },
+  withdrawModalTitle: {
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#1e293b',
+    margin: '0 0 6px 0'
+  },
+  withdrawModalSubtitle: {
+    fontSize: '13px',
+    color: '#64748b',
+    margin: 0
+  },
+  withdrawCloseButton: {
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    border: 'none',
+    background: 'white',
+    cursor: 'pointer',
+    padding: '6px',
+    borderRadius: '6px',
+    color: '#64748b',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+  },
+  withdrawModalBody: {
+    padding: '20px 24px 24px'
+  },
+  availableBalance: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '12px 16px',
+    backgroundColor: '#eff6ff',
+    borderRadius: '10px',
+    marginBottom: '20px',
+    border: '1px solid #dbeafe'
+  },
+  balanceLabel: {
+    fontSize: '13px',
+    color: '#64748b',
+    fontWeight: '500'
+  },
+  balanceAmount: {
+    fontSize: '18px',
+    fontWeight: '700',
+    color: '#3b82f6'
+  },
+  withdrawInputGroup: {
+    marginBottom: '16px'
+  },
+  withdrawInputLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: '8px'
+  },
+  withdrawInput: {
+    width: '100%',
+    padding: '12px 14px',
+    border: '2px solid #dbeafe',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '400',
+    outline: 'none',
+    transition: 'all 0.2s ease',
+    backgroundColor: 'white',
+    boxSizing: 'border-box',
+    color: '#1e293b'
+  },
+  withdrawModalActions: {
+    display: 'flex',
+    gap: '10px',
+    marginTop: '20px'
+  },
+  withdrawCancelButton: {
+    flex: 1,
+    padding: '12px 18px',
+    border: '2px solid #e2e8f0',
+    backgroundColor: 'white',
+    color: '#64748b',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  withdrawConfirmButton: {
+    flex: 1,
+    padding: '12px 18px',
+    border: 'none',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    color: 'white',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
+  },
+  processingText: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '2px'
+  },
+  dots: {
+    display: 'inline-flex',
+    marginLeft: '2px'
+  },
+  dot: {
+    animation: 'dotPulse 1.4s infinite ease-in-out',
+    opacity: 0
   }
-};
+
+}
 
 export default Funds;

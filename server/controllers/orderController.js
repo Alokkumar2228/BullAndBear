@@ -1,6 +1,7 @@
-import Order from "../models/OrderModel.js";
-import User from "../models/UserModel.js";
-import { getUsdInrRate } from "../utils/forex.js";
+
+import Order from '../models/OrderModel.js';
+import User from '../models/UserModel.js';
+import { getUsdInrRate } from '../utils/forex.js';
 
 // Logging utility
 const isDevelopment = process.env.NODE_ENV === "development";
@@ -170,6 +171,7 @@ export const createOrder = async (req, res) => {
 
     const newOrder = new Order({
       userId,
+      orderId: `ORD-${Date.now()}`, 
       symbol,
       name,
       mode,

@@ -67,9 +67,22 @@ export const GeneralContextProvider = (props) => {
     console.log("transactionData" ,transactionData);
   },[transactionData])
 
+  const withdrawFund = useCallback(async(data)=>{
+    const authToken = await getToken();
+    const response = await axios.post("http://localhost:8000/api/payment/withdraw-order",data,{
+      headers:{
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      }
+    });
+
+    return response.data;
+
+  },[])
+
   return (
     <GeneralContext.Provider value={{ handleOpenBuyWindow,transactionData, handleCloseBuyWindow ,
-    userFundData ,findTransactionData ,findUserFundsData}}>
+    userFundData ,findTransactionData ,findUserFundsData,withdrawFund}}>
       {props.children}
       {isBuyWindowOpen && <BuyActionWindow uid={selectedStockUID} data = {selectedStockData} />}
     </GeneralContext.Provider>
