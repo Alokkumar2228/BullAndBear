@@ -2,6 +2,8 @@
 import Order from '../models/OrderModel.js';
 import User from '../models/UserModel.js';
 import { getUsdInrRate } from '../utils/forex.js';
+import yahooFinance from 'yahoo-finance2';
+import client from '../utils/redisclient.js';
 
 // Logging utility
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -110,6 +112,7 @@ export const createOrder = async (req, res) => {
 
     const newOrder = new Order({
       userId,
+      orderId: `ORD-${Date.now()}`, 
       symbol,
       name,
       mode,
@@ -346,3 +349,91 @@ export const deleteOrder = async (req, res) => {
     res.status(500).json({ message: "Error deleting order", error: err.message });
   }
 };
+
+//sell stock
+export const sellStock = async (req, res) => {
+  try {
+    const { symbol, quantity, sellPrice, orderId } = req.body;
+    const userId = req?.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized: No user ID found" });
+    }
+
+    const order = await Order.findOne({ orderId: orderId }); // fixed: _id not orderId field
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    // if selling all
+    if (order.quantity === quantity) {
+      // delete order
+      await Order.findOneAndDelete({orderId:orderId});
+      return res.status(200).json({ success: true, message: "Entire position sold and order deleted" });
+    }
+
+    // if partial sale
+    if (quantity > order.quantity) {
+      return res.status(400).json({ success: false, message: "Sell quantity exceeds owned quantity" });
+    }
+
+    order.quantity -= quantity;
+    order.totalAmount = order.quantity * order.purchasePrice;
+    order.executedAt = new Date();
+
+    await order.save();
+
+    const stockSymbol = order.symbol;
+    const quote = await yahooFinance.quote({
+      symbol: stockSymbol,
+      modules: ['price'] 
+    });
+    const currentMarketPrice = quote.price.regularMarketPrice;
+    logger.info(`Current market price for ${stockSymbol} is ${currentMarketPrice}`);
+
+    const newSellorder = new Order({
+      userId,
+      orderId: `ORD-${Date.now()}`, 
+      symbol: order.symbol,
+      name: order.name,
+      mode: "SELL",
+      quantity: quantity,
+      purchasePrice: order.purchasePrice,
+      totalAmount: quantity * currentMarketPrice,
+      actualPrice: currentMarketPrice,
+      changePercent: ((currentMarketPrice - order.purchasePrice) / order.purchasePrice) * 100,
+      orderType: order.orderType,
+      status: "EXECUTED",
+      executedAt: new Date(),
+    });
+
+    await newSellorder.save();
+
+    await client.publish(
+      'stockSold',
+      JSON.stringify({ userId,quantity, sellPrice : currentMarketPrice })
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Stock sold successfully",
+      updatedOrder: order,
+      sellTransaction
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+// export const updateOrderData = async(req,res) =>{
+// 
+  // const userId = req?.user?.id;
+  // const cachedData = await client.get('stocks');
+// 
+// 
+// 
+// }
+// 

@@ -2,10 +2,10 @@ import express from 'express';
 import { 
   createOrder, 
   getOrderById, 
-  deleteOrder, 
   updateOrderStatus,
   squareOffIntraday,
-  processSettlements
+  processSettlements,
+  sellStock
 } from '../controllers/orderController.js';
 import { clerkAuth } from '../middleware/clerkAuth.js';
 
@@ -17,8 +17,17 @@ router.use(clerkAuth);
 router.post('/create', createOrder);
 router.post('/find', getOrderById);
 router.post('/update-status', updateOrderStatus);
-router.post('/delete', deleteOrder);
 router.post('/square-off-intraday', squareOffIntraday);
 router.post('/process-settlements', processSettlements);
+// router.put('/order-update-data',updateOrderData);
+
+//selling the stocks
+
+router.post('/sell-order', sellStock);
+
+
+
+
+
  
 export default router;
