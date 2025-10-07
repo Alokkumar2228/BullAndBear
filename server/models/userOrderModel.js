@@ -14,18 +14,6 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  isSettled: {
-    type: Boolean,
-    default: false
-  },
-  settlementDate: {
-    type: Date,
-    default: null
-  },
-  inDematAccount: {
-    type: Boolean,
-    default: false
-  },
   name: {
     type: String,
     required: true
@@ -56,13 +44,10 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  actualPrice: {
+ 
+  sellPrice :{
     type: Number,
-    required: true
-  },
-  changePercent: {
-    type: Number,
-    required: true
+    default: null
   },
   placedAt: {
     type: Date,
@@ -72,12 +57,8 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  totalAmount: {
-    type: Number,
-    required: true
-  }
 });
 
-const Order = mongoose.model('Order', orderSchema);
+const userallOrder = mongoose.model('userOrder', orderSchema);
 
-export default Order;
+export default userallOrder;

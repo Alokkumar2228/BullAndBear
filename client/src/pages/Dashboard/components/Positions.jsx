@@ -16,9 +16,8 @@ const Positions = () => {
       const authToken = await getToken();
       console.log("Fetching positions with token:", authToken);
 
-      const response = await axios.post(
-        "http://localhost:8000/api/order/find",
-        { orderType: ["INTRADAY", "FNO"] },
+      const response = await axios.get(
+        "http://localhost:8000/api/order/get-user-order?type=FNO,INTERDAY",
         {
           headers: {
             Authorization: `Bearer ${authToken}`,

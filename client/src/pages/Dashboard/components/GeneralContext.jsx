@@ -80,9 +80,35 @@ export const GeneralContextProvider = (props) => {
 
   },[])
 
+  const handleSellStock = useCallback(async(data , quantity)=>{
+    console.log("sell data" , data , quantity);
+    const authToken = await getToken();
+    const selldata = {
+      symbol : data.symbol,
+      quantity : quantity,
+      sellPrice : data.actualPrice,
+      orderId : data.orderId,
+    }
+    console.log("selldata" , selldata);
+    const response = await axios.post("http://localhost:8000/api/order/sell-order",{selldata},{
+      headers:{
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      }
+    });
+
+    if(response.data.success){
+      findUserFundsData();
+      findTransactionData();
+    }
+
+    return response.data;
+
+  },[])
+
   return (
     <GeneralContext.Provider value={{ handleOpenBuyWindow,transactionData, handleCloseBuyWindow ,
-    userFundData ,findTransactionData ,findUserFundsData,withdrawFund}}>
+    userFundData ,findTransactionData ,findUserFundsData,withdrawFund , handleSellStock}}>
       {props.children}
       {isBuyWindowOpen && <BuyActionWindow uid={selectedStockUID} data = {selectedStockData} />}
     </GeneralContext.Provider>
