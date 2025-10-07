@@ -23,10 +23,16 @@ const Positions = () => {
     setError(null);
     try {
       const authToken = await getToken();
-      const response = await axios.post(
-        "http://localhost:8000/api/order/find",
-        { orderType: ["INTRADAY", "FNO"] },
-        { headers: { Authorization: `Bearer ${authToken}` } }
+
+      const response = await axios.get(
+        "http://localhost:8000/api/order/get-user-order?type=FNO,INTERDAY",
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+
       );
       if (!response.data || !Array.isArray(response.data)) {
         throw new Error("Invalid response format from server");

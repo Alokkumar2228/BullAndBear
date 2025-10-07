@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
+import "./dashboard.css";
+import { GeneralContext } from "./GeneralContext";
 
 const Holdings = () => {
   const [holdings, setHoldings] = useState([]);
@@ -10,24 +12,30 @@ const Holdings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { getToken } = useAuth();
+  const { handleSellStock } = useContext(GeneralContext);
 
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat("en-IN", {
+  // Format number utility
+  const formatNumber = (num) =>
+    new Intl.NumberFormat("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(num);
-  };
 
-  // Fetch holdings (DELIVERY orders)
+  // ✅ Fetch holdings (DELIVERY orders)
   const fetchHoldings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const authToken = await getToken();
-      const response = await axios.post(
-        "http://localhost:8000/api/order/find",
-        { orderType: "DELIVERY" },
-        { headers: { Authorization: `Bearer ${authToken}` } }
+
+      const response = await axios.get(
+        "http://localhost:8000/api/order/get-user-order?type=DELIVERY",
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (!response.data || !Array.isArray(response.data)) {
@@ -36,12 +44,22 @@ const Holdings = () => {
 
       setHoldings(response.data);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to fetch holdings");
+      console.error("Error fetching delivery orders:", err);
       setHoldings([]);
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to fetch holdings"
+      );
     } finally {
       setLoading(false);
     }
   }, [getToken]);
+
+  // ✅ Fetch holdings on mount
+  useEffect(() => {
+    fetchHoldings();
+  }, [fetchHoldings]);
 
   const handleSell = (stock) => {
     setIsSell(true);
@@ -49,15 +67,19 @@ const Holdings = () => {
     setQuantity(stock.quantity); // default to full quantity
   };
 
-  useEffect(() => {
-    fetchHoldings();
-  }, [fetchHoldings]);
-
-  // Calculations
-  const totalInvestment = holdings.reduce((sum, stock) => sum + (stock.totalAmount || 0), 0);
-  const currentValue = holdings.reduce((sum, stock) => sum + stock.quantity * stock.actualPrice, 0);
+  // ✅ Calculations
+  const totalInvestment = holdings.reduce(
+    (sum, stock) => sum + (stock.totalAmount || 0),
+    0
+  );
+  const currentValue = holdings.reduce(
+    (sum, stock) => sum + stock.quantity * stock.actualPrice,
+    0
+  );
   const profit = currentValue - totalInvestment;
-  const profitPercentage = totalInvestment ? ((profit / totalInvestment) * 100).toFixed(2) : 0;
+  const profitPercentage = totalInvestment
+    ? ((profit / totalInvestment) * 100).toFixed(2)
+    : 0;
 
   return (
     <div style={{ padding: "20px" }}>
@@ -65,7 +87,14 @@ const Holdings = () => {
 
       {/* Loading */}
       {loading && (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "200px",
+          }}
+        >
           <div
             style={{
               width: "50px",
@@ -124,7 +153,14 @@ const Holdings = () => {
                   "Day chg.",
                   "Action",
                 ].map((th) => (
-                  <th key={th} style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>
+                  <th
+                    key={th}
+                    style={{
+                      textAlign: "left",
+                      padding: "8px",
+                      borderBottom: "1px solid #ccc",
+                    }}
+                  >
                     {th}
                   </th>
                 ))}
@@ -133,33 +169,65 @@ const Holdings = () => {
             <tbody>
               {holdings.map((stock, index) => {
                 const curValue = stock.quantity * stock.actualPrice;
-                const profitValue = (stock.actualPrice - stock.purchasePrice) * stock.quantity;
+                const profitValue =
+                  (stock.actualPrice - stock.purchasePrice) * stock.quantity;
                 const isProfit = profitValue >= 0;
 
                 return (
                   <tr key={index} style={{ borderBottom: "1px solid #eee" }}>
-                    <td style={{ padding: "8px" }}>{`${stock.symbol} - ${stock.name}`}</td>
+                    <td style={{ padding: "8px" }}>
+                      {stock.symbol} - {stock.name}
+                    </td>
                     <td style={{ padding: "8px" }}>{stock.quantity}</td>
-                    <td style={{ padding: "8px" }}>{formatNumber(stock.purchasePrice)}</td>
-                    <td style={{ padding: "8px", color: stock.actualPrice >= stock.purchasePrice ? "green" : "red" }}>
+                    <td style={{ padding: "8px" }}>
+                      {formatNumber(stock.purchasePrice)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        color:
+                          stock.actualPrice >= stock.purchasePrice
+                            ? "green"
+                            : "red",
+                      }}
+                    >
                       {formatNumber(stock.actualPrice)}
                     </td>
-                    <td style={{ padding: "8px", color: curValue >= stock.totalAmount }}>
-                      {formatNumber(curValue)}
-                    </td>
-                    <td style={{ padding: "8px", color: isProfit ? "green" : "red" }}>
+                    <td style={{ padding: "8px" }}>{formatNumber(curValue)}</td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        color: isProfit ? "green" : "red",
+                      }}
+                    >
                       {formatNumber(profitValue)}
                     </td>
-                    <td style={{ padding: "8px", color: isProfit ? "green" : "red" }}>
-                      {(((stock.actualPrice - stock.purchasePrice) / stock.purchasePrice) * 100).toFixed(2)}%
+                    <td
+                      style={{
+                        padding: "8px",
+                        color: isProfit ? "green" : "red",
+                      }}
+                    >
+                      {(
+                        ((stock.actualPrice - stock.purchasePrice) /
+                          stock.purchasePrice) *
+                        100
+                      ).toFixed(2)}
+                      %
                     </td>
-                    <td style={{ padding: "8px", color: stock.changePercent >= 0 ? "green" : "red" }}>
+                    <td
+                      style={{
+                        padding: "8px",
+                        color: stock.changePercent >= 0 ? "green" : "red",
+                      }}
+                    >
                       {stock.changePercent}%
                     </td>
                     <td style={{ padding: "8px" }}>
                       <button
                         style={{
-                          background: "linear-gradient(135deg,#f30909 0%,#e80606 100%)",
+                          background:
+                            "linear-gradient(135deg,#f30909 0%,#e80606 100%)",
                           color: "white",
                           border: "1px solid #f4511e",
                           borderRadius: "6px",
@@ -205,8 +273,12 @@ const Holdings = () => {
               boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
             }}
           >
-            <h5 style={{ margin: "0 0 5px 0" }}>${formatNumber(totalInvestment)}</h5>
-            <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>Total investment</p>
+            <h5 style={{ margin: "0 0 5px 0" }}>
+              ${formatNumber(totalInvestment)}
+            </h5>
+            <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>
+              Total investment
+            </p>
           </div>
           <div
             style={{
@@ -219,8 +291,12 @@ const Holdings = () => {
               boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
             }}
           >
-            <h5 style={{ margin: "0 0 5px 0" }}>${formatNumber(currentValue)}</h5>
-            <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>Current value</p>
+            <h5 style={{ margin: "0 0 5px 0" }}>
+              ${formatNumber(currentValue)}
+            </h5>
+            <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>
+              Current value
+            </p>
           </div>
           <div
             style={{
@@ -233,8 +309,14 @@ const Holdings = () => {
               boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
             }}
           >
-            <h5 style={{ margin: "0 0 5px 0", color: profit >= 0 ? "green" : "red" }}>
-              {profit >= 0 ? "+" : ""}{formatNumber(profit)} ({profitPercentage}%)
+            <h5
+              style={{
+                margin: "0 0 5px 0",
+                color: profit >= 0 ? "green" : "red",
+              }}
+            >
+              {profit >= 0 ? "+" : ""}
+              {formatNumber(profit)} ({profitPercentage}%)
             </h5>
             <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>P&L</p>
           </div>
@@ -269,15 +351,42 @@ const Holdings = () => {
               boxShadow: "0px 8px 25px rgba(0,0,0,0.3)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "15px",
+              }}
+            >
               <h3>Sell Position</h3>
-              <button onClick={() => setIsSell(false)} style={{ background: "none", border: "none", fontSize: "22px", cursor: "pointer" }}>×</button>
+              <button
+                onClick={() => setIsSell(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "22px",
+                  cursor: "pointer",
+                }}
+              >
+                ×
+              </button>
             </div>
 
-            <div style={{ background: "#f8f9fa", padding: "10px", borderRadius: "8px", marginBottom: "15px" }}>
-              <div style={{ fontWeight: 600 }}>{selectedStock.symbol} - {selectedStock.name}</div>
+            <div
+              style={{
+                background: "#f8f9fa",
+                padding: "10px",
+                borderRadius: "8px",
+                marginBottom: "15px",
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>
+                {selectedStock.symbol} - {selectedStock.name}
+              </div>
               <div>Available: {selectedStock.quantity}</div>
-              <div>Current Price: ${formatNumber(selectedStock.actualPrice)}</div>
+              <div>
+                Current Price: ${formatNumber(selectedStock.actualPrice)}
+              </div>
             </div>
 
             <div style={{ marginBottom: "15px" }}>
@@ -287,28 +396,68 @@ const Holdings = () => {
                 value={quantity}
                 min="1"
                 max={selectedStock.quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", marginTop: "5px" }}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  marginTop: "5px",
+                }}
               />
-              {quantity > selectedStock.quantity && <div style={{ color: "red", marginTop: "5px" }}>Quantity exceeds available shares</div>}
+              {quantity > selectedStock.quantity && (
+                <div style={{ color: "red", marginTop: "5px" }}>
+                  Quantity exceeds available shares
+                </div>
+              )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
               <button
-                disabled={!quantity || quantity <= 0 || quantity > selectedStock.quantity}
+                disabled={
+                  !quantity || quantity <= 0 || quantity > selectedStock.quantity
+                }
                 style={{
-                  background: !quantity || quantity <= 0 || quantity > selectedStock.quantity ? "#ccc" : "linear-gradient(135deg,#e74c3c,#c0392b)",
+                  background:
+                    !quantity ||
+                    quantity <= 0 ||
+                    quantity > selectedStock.quantity
+                      ? "#ccc"
+                      : "linear-gradient(135deg,#e74c3c,#c0392b)",
                   color: "white",
                   padding: "10px 18px",
                   border: "none",
                   borderRadius: "6px",
                   fontWeight: 600,
-                  cursor: !quantity || quantity <= 0 || quantity > selectedStock.quantity ? "not-allowed" : "pointer",
+                  cursor:
+                    !quantity ||
+                    quantity <= 0 ||
+                    quantity > selectedStock.quantity
+                      ? "not-allowed"
+                      : "pointer",
                 }}
+                onClick={() => handleSellStock(selectedStock, quantity)}
               >
                 Confirm Sell
               </button>
-              <button onClick={() => setIsSell(false)} style={{ background: "#ddd", padding: "10px 18px", border: "none", borderRadius: "6px", cursor: "pointer" }}>Cancel</button>
+              <button
+                onClick={() => setIsSell(false)}
+                style={{
+                  background: "#ddd",
+                  padding: "10px 18px",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -318,5 +467,3 @@ const Holdings = () => {
 };
 
 export default Holdings;
-
-
