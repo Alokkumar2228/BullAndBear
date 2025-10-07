@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 import "./dashboard.css";
+import { GeneralContext } from "./GeneralContext";
 
 const Holdings = () => {
   const [allHoldings, setAllHoldings] = useState([]);
@@ -11,6 +12,7 @@ const Holdings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { getToken } = useAuth();
+  const {handleSellStock} = useContext(GeneralContext);
 
   const formatNumber = (num) => {
     return new Intl.NumberFormat("en-IN", {
@@ -27,11 +29,8 @@ const Holdings = () => {
       console.log("Auth token:", authToken);
 
       // First try with minimal filters to verify data retrieval
-      const response = await axios.post(
-        "http://localhost:8000/api/order/find",
-        {
-          orderType: "DELIVERY",
-        },
+      const response = await axios.get(
+        "http://localhost:8000/api/order/get-user-order?type=DELIVERY",
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -61,6 +60,7 @@ const Holdings = () => {
   const handleSell = async (stock) => {
     SetIsSell(true);
     setSelectedStock(stock);
+    console.log("stock",stock);
   };
 
   useEffect(() => {
@@ -356,6 +356,7 @@ const Holdings = () => {
                   quantity <= 0 ||
                   quantity > selectedStock.quantity
                 }
+                onClick = {()=>handleSellStock(selectedStock, quantity)}
               >
                 Confirm Sell
               </button>
