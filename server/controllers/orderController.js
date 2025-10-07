@@ -15,41 +15,34 @@ const logger = {
   info: (...args) => isDevelopment && console.info(...args),
 };
 
-// Helper function to calculate settlement date (T+1)
+// Helper: Calculate settlement date (T+1)
 const calculateSettlementDate = () => {
   const settlementDate = new Date();
   settlementDate.setDate(settlementDate.getDate() + 1);
-  // Skip weekends
   while (settlementDate.getDay() === 0 || settlementDate.getDay() === 6) {
     settlementDate.setDate(settlementDate.getDate() + 1);
   }
   return settlementDate;
 };
 
-// Helper function to check market hours
+// Helper: Check market hours (9:15 – 3:30 IST)
 const isWithinMarketHours = () => {
   const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const timeInMinutes = hours * 60 + minutes;
-
-  // Market hours: 9:15 AM to 3:30 PM
+  const timeInMinutes = now.getHours() * 60 + now.getMinutes();
   return timeInMinutes >= 555 && timeInMinutes <= 930;
 };
 
-// Create Order
+// ✅ Create Order Controller
 export const createOrder = async (req, res) => {
   const session = await mongoose.startSession();
-  await session.startTransaction(); // ✅ ensure transaction starts properly
+  session.startTransaction();
 
   try {
     const userId = req.user?.id;
     if (!userId) {
       await session.abortTransaction();
       await session.endSession();
-      return res
-        .status(401)
-        .json({ message: "Unauthorized: No user ID found" });
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
     }
 
     const {
@@ -61,45 +54,33 @@ export const createOrder = async (req, res) => {
       name,
       changePercent,
       orderType = "DELIVERY",
-      totalAmount,
+      orderMode = "MARKET",
       currency = "USD",
     } = req.body;
 
-    // ✅ Validation
-    if (
-      !symbol ||
-      !mode ||
-      !quantity ||
-      !purchasePrice ||
-      !actualPrice ||
-      !name ||
-      !changePercent ||
-      !totalAmount
-    ) {
+    // ✅ Validate input
+    if (!symbol || !mode || !quantity || !purchasePrice || !actualPrice || !name || !changePercent) {
       await session.abortTransaction();
       await session.endSession();
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // ✅ Numeric coercion
+    // ✅ Numeric conversions
     const numericQuantity = Number(quantity);
     const numericPurchasePrice = Number(purchasePrice);
-    const numericTotalAmount = Number(totalAmount);
     const numericActualPrice = Number(actualPrice);
 
-    // ✅ Validate total
-    const calculatedTotal = numericQuantity * numericPurchasePrice;
-    if (Math.abs(calculatedTotal - numericTotalAmount) > 0.01) {
+    if (isNaN(numericQuantity) || isNaN(numericPurchasePrice) || isNaN(numericActualPrice)) {
       await session.abortTransaction();
       await session.endSession();
-      return res.status(400).json({
-        message: "Invalid total amount",
-        expected: calculatedTotal,
-        received: numericTotalAmount,
-      });
+      return res.status(400).json({ message: "Invalid numeric values" });
     }
 
-    // ✅ Find user in transaction
+    // ✅ Calculate amount
+    const priceToUse = orderMode === "LIMIT" ? numericPurchasePrice : numericActualPrice;
+    const totalAmount = numericQuantity * priceToUse;
+
+    // ✅ Find user
     const user = await User.findOne({ user_id: userId }).session(session);
     if (!user) {
       await session.abortTransaction();
@@ -108,34 +89,32 @@ export const createOrder = async (req, res) => {
     }
 
     // ✅ Currency conversion
-    const normalizedCurrency = (currency || "USD").toUpperCase();
     const usdInrRate = await getUsdInrRate();
-    const amountAtFillInGivenCurrency = numericQuantity * numericActualPrice;
-    const requiredAmountInInr =
-      normalizedCurrency === "USD"
-        ? amountAtFillInGivenCurrency * usdInrRate
-        : amountAtFillInGivenCurrency;
+    const requiredAmountInInr = currency.toUpperCase() === "USD"
+      ? totalAmount * usdInrRate
+      : totalAmount;
 
+    // ✅ Balance check
     if (user.balance < requiredAmountInInr) {
       await session.abortTransaction();
       await session.endSession();
       return res.status(400).json({
         message: `Insufficient balance. Required ₹${requiredAmountInInr.toFixed(
           2
-        )}, Available ₹${Number(user.balance).toFixed(2)}`,
+        )}, Available ₹${user.balance.toFixed(2)}.`,
       });
     }
 
-    // ✅ Market-hour validation
+    // ✅ Intraday validation
     if (orderType === "INTRADAY" && !isWithinMarketHours()) {
       await session.abortTransaction();
       await session.endSession();
       return res.status(400).json({
-        message: "Intraday orders can only be placed during market hours",
+        message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
       });
     }
 
-    // ✅ Base order shared between both collections
+    // ✅ Base order object
     const baseOrder = {
       userId,
       orderId: `ORD-${Date.now()}`,
@@ -144,16 +123,17 @@ export const createOrder = async (req, res) => {
       mode,
       quantity: numericQuantity,
       purchasePrice: numericPurchasePrice,
-      totalAmount: numericTotalAmount,
       actualPrice: numericActualPrice,
+      totalAmount,
       changePercent,
       orderType,
       currency,
+      orderMode,
       status: "EXECUTED",
       executedAt: new Date(),
     };
 
-    // ✅ Create both order entries
+    // ✅ Create orders
     const allOrdersEntry = new userallOrder(baseOrder);
     const userSpecificOrder = new Order({
       ...baseOrder,
@@ -164,38 +144,43 @@ export const createOrder = async (req, res) => {
       }),
     });
 
-    // ✅ Save both in the same transaction
     await allOrdersEntry.save({ session });
     await userSpecificOrder.save({ session });
 
-    // ✅ Deduct balance atomically
+    // ✅ Deduct balance
     user.balance = Number(user.balance) - requiredAmountInInr;
     await user.save({ session });
 
-    // ✅ Commit and clean up
+    // ✅ Commit transaction
     await session.commitTransaction();
     await session.endSession();
 
-    res.status(201).json({
-      message: "Order created successfully",
+    return res.status(201).json({
+      message: `Order placed successfully for ${numericQuantity} shares of ${symbol} at ${priceToUse.toFixed(
+        2
+      )} ${currency}.`,
       order: userSpecificOrder,
       newBalance: user.balance,
     });
   } catch (err) {
-    // ✅ Rollback on any failure
     await session.abortTransaction();
     await session.endSession();
-    res
-      .status(500)
-      .json({ message: "Error creating order", error: err.message });
+    logger.error("Order creation failed:", err);
+    return res.status(500).json({ message: "Error creating order", error: err.message });
   }
 };
+
 
 // Get Orders by User ID
 export const getOrderById = async (req, res) => {
   try {
+
+
+    
+
     // console.log('Request user object:', req.user);
     // console.log('Request headers:', req.headers);
+
 
     const userId = req.user?.id;
     if (!userId) {
@@ -228,7 +213,7 @@ export const getOrderById = async (req, res) => {
       query.inDematAccount = inDematAccount;
     }
 
-    // console.log("Fetching orders with query:", query);
+   
     const orders = await Order.find(query);
 
     // Return empty array instead of 404 when no orders found
@@ -236,7 +221,10 @@ export const getOrderById = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    // console.log(`Found ${orders.length} orders for user ${userId}`);
+    
+
+
+
     res.status(200).json(orders);
   } catch (err) {
     res
@@ -477,13 +465,18 @@ export const deleteOrder = async (req, res) => {
         .json({ message: "Order not found or unauthorized" });
     }
 
-    console.log(`Order ${orderId} deleted successfully by user ${userId}`);
+    
     res.status(200).json({ message: "Order deleted successfully" });
   } catch (err) {
+
+
+    res.status(500).json({ message: "Error deleting order", error: err.message });
+
     console.error("Delete order error:", err);
     res
       .status(500)
       .json({ message: "Error deleting order", error: err.message });
+
   }
 };
 
@@ -584,6 +577,7 @@ export const sellStock = async (req, res) => {
 };
 
 
+
 export const getAllOrders = async (req, res) => {
   const userId = req?.user?.id;
 
@@ -602,12 +596,5 @@ export const getAllOrders = async (req, res) => {
   }
 };
 
-// export const updateOrderData = async(req,res) =>{
-//
-// const userId = req?.user?.id;
-// const cachedData = await client.get('stocks');
-//
-//
-//
-// }
-//
+
+
