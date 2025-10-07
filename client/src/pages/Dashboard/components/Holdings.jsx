@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
-import "./dashboard.css";
 
 const Holdings = () => {
-  const [allHoldings, setAllHoldings] = useState([]);
-  const [isSell, SetIsSell] = useState(false);
-  const [quantity, setQuantity] = useState(0);
+  const [holdings, setHoldings] = useState([]);
+  const [isSell, setIsSell] = useState(false);
   const [selectedStock, setSelectedStock] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [quantity, setQuantity] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { getToken } = useAuth();
 
@@ -19,372 +18,305 @@ const Holdings = () => {
     }).format(num);
   };
 
-  const findOrder = useCallback(async () => {
-    setIsLoading(true);
+  // Fetch holdings (DELIVERY orders)
+  const fetchHoldings = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
       const authToken = await getToken();
-      console.log("Auth token:", authToken);
-
-      // First try with minimal filters to verify data retrieval
       const response = await axios.post(
         "http://localhost:8000/api/order/find",
-        {
-          orderType: "DELIVERY",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { orderType: "DELIVERY" },
+        { headers: { Authorization: `Bearer ${authToken}` } }
       );
-      console.log("Delivery orders fetched successfully:", response.data);
-      setAllHoldings(response.data);
-    } catch (error) {
-      console.error("Error fetching delivery orders:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-      setAllHoldings([]);
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch holdings"
-      );
+
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error("Invalid response format from server");
+      }
+
+      setHoldings(response.data);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to fetch holdings");
+      setHoldings([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [getToken]);
 
-  const handleSell = async (stock) => {
-    SetIsSell(true);
+  const handleSell = (stock) => {
+    setIsSell(true);
     setSelectedStock(stock);
+    setQuantity(stock.quantity); // default to full quantity
   };
 
   useEffect(() => {
-    findOrder();
-  }, [findOrder]);
+    fetchHoldings();
+  }, [fetchHoldings]);
 
-  const calInvestment = () => {
-    let sum = 0;
-    allHoldings.forEach((stock) => {
-      sum += stock.totalAmount || 0;
-    });
-    return sum;
-  };
-
-  const calActualValue = () => {
-    let currVal = 0;
-    allHoldings.forEach(
-      (stock) => (currVal += stock.quantity * stock.actualPrice)
-    );
-    return currVal.toFixed(2);
-  };
-
-  const profit = (calActualValue() - calInvestment()).toFixed(2);
-  const profitPercentage = ((profit / calInvestment()) * 100).toFixed(2);
-
-  // Skeleton loading component
-  const SkeletonRow = () => (
-    <tr className="skeleton-row">
-      <td className="skeleton-cell">
-        <div className="skeleton-box instrument-skeleton"></div>
-      </td>
-      <td className="skeleton-cell">
-        <div className="skeleton-box small-skeleton"></div>
-      </td>
-      <td className="skeleton-cell">
-        <div className="skeleton-box small-skeleton"></div>
-      </td>
-      <td className="skeleton-cell">
-        <div className="skeleton-box small-skeleton"></div>
-      </td>
-      <td className="skeleton-cell">
-        <div className="skeleton-box small-skeleton"></div>
-      </td>
-      <td className="skeleton-cell">
-        <div className="skeleton-box small-skeleton"></div>
-      </td>
-      <td className="skeleton-cell">
-        <div className="skeleton-box small-skeleton"></div>
-      </td>
-      <td className="skeleton-cell">
-        <div className="skeleton-box small-skeleton"></div>
-      </td>
-      <td className="skeleton-cell">
-        <div className="skeleton-box button-skeleton"></div>
-      </td>
-    </tr>
-  );
-
-  // Summary skeleton component
-  const SummarySkeleton = () => (
-    <div className="row">
-      <div className="col">
-        <div className="skeleton-box summary-skeleton"></div>
-        <div className="skeleton-box text-skeleton"></div>
-      </div>
-      <div className="col">
-        <div className="skeleton-box summary-skeleton"></div>
-        <div className="skeleton-box text-skeleton"></div>
-      </div>
-      <div className="col">
-        <div className="skeleton-box summary-skeleton"></div>
-        <div className="skeleton-box text-skeleton"></div>
-      </div>
-    </div>
-  );
+  // Calculations
+  const totalInvestment = holdings.reduce((sum, stock) => sum + (stock.totalAmount || 0), 0);
+  const currentValue = holdings.reduce((sum, stock) => sum + stock.quantity * stock.actualPrice, 0);
+  const profit = currentValue - totalInvestment;
+  const profitPercentage = totalInvestment ? ((profit / totalInvestment) * 100).toFixed(2) : 0;
 
   return (
-    <div className="dashboard-section">
-      <h3 className="title">
-        {isLoading ? (
-          <div className="title-skeleton">
-            <div className="skeleton-box title-text-skeleton"></div>
-            <div className="skeleton-box count-skeleton"></div>
-          </div>
-        ) : (
-          `Holdings (${allHoldings.length})`
-        )}
-      </h3>
+    <div style={{ padding: "20px" }}>
+      <h3 style={{ marginBottom: "20px" }}>Holdings ({holdings.length})</h3>
 
-      {isLoading && (
-        <div className="loading-container">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner">
-              <div className="spinner-ring"></div>
-              <div className="spinner-ring"></div>
-              <div className="spinner-ring"></div>
-            </div>
-            <div className="loading-text">
-              <span>Loading your holdings</span>
-              <div className="loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          </div>
+      {/* Loading */}
+      {loading && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px" }}>
+          <div
+            style={{
+              width: "50px",
+              height: "50px",
+              border: "6px solid #f3f3f3",
+              borderTop: "6px solid #387ed1",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }}
+          />
+          <style>{`@keyframes spin {0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }}`}</style>
+          <p style={{ marginLeft: "15px" }}>Loading holdings...</p>
         </div>
       )}
 
+      {/* Error */}
       {error && (
-        <div className="error-container">
-          <div className="error-icon">⚠️</div>
-          <div className="error-message">{error}</div>
-          <button className="retry-button" onClick={findOrder}>
-            Try Again
+        <div style={{ color: "red", marginBottom: "20px" }}>
+          {error}{" "}
+          <button
+            onClick={fetchHoldings}
+            style={{
+              marginLeft: "10px",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              border: "none",
+              background: "#387ed1",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Retry
           </button>
         </div>
       )}
 
-      {isLoading ? (
-        <div className="order-table">
-          <table className="holdings-table">
+      {/* No Data */}
+      {!loading && !error && holdings.length === 0 && (
+        <div>No holdings found</div>
+      )}
+
+      {/* Table */}
+      {!loading && !error && holdings.length > 0 && (
+        <div style={{ overflowX: "auto", marginBottom: "20px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th>Instrument</th>
-                <th>Qty.</th>
-                <th>Avg. cost</th>
-                <th>LTP</th>
-                <th>Cur. val</th>
-                <th>P&L</th>
-                <th>Net chg.</th>
-                <th>Day chg.</th>
-                <th>Action</th>
+                {[
+                  "Instrument",
+                  "Qty.",
+                  "Avg. cost",
+                  "LTP",
+                  "Cur. val",
+                  "P&L",
+                  "Net chg.",
+                  "Day chg.",
+                  "Action",
+                ].map((th) => (
+                  <th key={th} style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #ccc" }}>
+                    {th}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {[...Array(5)].map((_, index) => (
-                <SkeletonRow key={index} />
-              ))}
-            </tbody>
-          </table>
-          <SummarySkeleton />
-        </div>
-      ) : (
-        !error && (
-          <div className="order-table">
-            <table className="holdings-table">
-              <thead>
-                <tr>
-                  <th>Instrument</th>
-                  <th>Qty.</th>
-                  <th>Avg. cost</th>
-                  <th>LTP</th>
-                  <th>Cur. val</th>
-                  <th>P&L</th>
-                  <th>Net chg.</th>
-                  <th>Day chg.</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allHoldings.length === 0 ? (
-                  <tr className="empty-state-row">
-                    <td colSpan="9" className="empty-state-cell">
-                      <div className="empty-state">
-                        <div className="empty-icon">📊</div>
-                        <h4>No Holdings Found</h4>
-                        <p>
-                          You don't have any delivery holdings yet. Start by
-                          placing your first buy order!
-                        </p>
-                      </div>
+              {holdings.map((stock, index) => {
+                const curValue = stock.quantity * stock.actualPrice;
+                const profitValue = (stock.actualPrice - stock.purchasePrice) * stock.quantity;
+                const isProfit = profitValue >= 0;
+
+                return (
+                  <tr key={index} style={{ borderBottom: "1px solid #eee" }}>
+                    <td style={{ padding: "8px" }}>{`${stock.symbol} - ${stock.name}`}</td>
+                    <td style={{ padding: "8px" }}>{stock.quantity}</td>
+                    <td style={{ padding: "8px" }}>{formatNumber(stock.purchasePrice)}</td>
+                    <td style={{ padding: "8px", color: stock.actualPrice >= stock.purchasePrice ? "green" : "red" }}>
+                      {formatNumber(stock.actualPrice)}
+                    </td>
+                    <td style={{ padding: "8px", color: curValue >= stock.totalAmount }}>
+                      {formatNumber(curValue)}
+                    </td>
+                    <td style={{ padding: "8px", color: isProfit ? "green" : "red" }}>
+                      {formatNumber(profitValue)}
+                    </td>
+                    <td style={{ padding: "8px", color: isProfit ? "green" : "red" }}>
+                      {(((stock.actualPrice - stock.purchasePrice) / stock.purchasePrice) * 100).toFixed(2)}%
+                    </td>
+                    <td style={{ padding: "8px", color: stock.changePercent >= 0 ? "green" : "red" }}>
+                      {stock.changePercent}%
+                    </td>
+                    <td style={{ padding: "8px" }}>
+                      <button
+                        style={{
+                          background: "linear-gradient(135deg,#f30909 0%,#e80606 100%)",
+                          color: "white",
+                          border: "1px solid #f4511e",
+                          borderRadius: "6px",
+                          padding: "8px 16px",
+                          fontSize: "14px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                          boxShadow: "0 2px 8px rgba(255,87,34,0.3)",
+                          transition: "all 0.2s ease-in-out",
+                        }}
+                        onClick={() => handleSell(stock)}
+                      >
+                        Sell
+                      </button>
                     </td>
                   </tr>
-                ) : (
-                  allHoldings.map((stock, index) => {
-                    const curValue = stock.quantity * stock.actualPrice;
-                    const profitValue =
-                      (stock.actualPrice - stock.purchasePrice) *
-                      stock.quantity;
-                    const isProfit = profitValue >= 0;
-                    const profClass = isProfit ? "profit" : "loss";
-
-                    return (
-                      <tr key={index} className="holdings-row">
-                        <td className="instrument-cell">{`${stock.symbol} - ${stock.name}`}</td>
-                        <td className="quantity-cell">{stock.quantity}</td>
-                        <td className="price-cell">
-                          {formatNumber(stock.purchasePrice)}
-                        </td>
-                        <td className="price-cell">
-                          {formatNumber(stock.actualPrice)}
-                        </td>
-
-                        <td className="value-cell">{formatNumber(curValue)}</td>
-                        <td className={`pnl-cell ${profClass}`}>
-                          {formatNumber(profitValue)}
-                        </td>
-                        <td className={`change-cell ${profClass}`}>
-                          {(
-                            ((stock.actualPrice - stock.purchasePrice) /
-                              stock.purchasePrice) *
-                            100
-                          ).toFixed(2)}
-                          %
-                        </td>
-                        <td className={`day-change-cell ${profClass}`}>
-                          {stock.changePercent}%
-                        </td>
-
-                        <td className="action-cell">
-                          <button
-                            style={{
-                              background:
-                              "linear-gradient(135deg,rgb(243, 9, 9) 0%,rgb(232, 6, 6) 100%)",
-                              color: "white",
-                              border: "1px solid #f4511e",
-                              borderRadius: "6px",
-                              padding: "8px 16px",
-                              fontSize: "14px",
-                              fontWeight: "600",
-                              cursor: "pointer",
-                              boxShadow: "0 2px 8px rgba(255, 87, 34, 0.3)",
-                              transition: "all 0.2s ease-in-out",
-                            }}
-                            onClick={() => handleSell(stock)}
-                          >
-                            Sell
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        )
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
-      {isSell && selectedStock && (
-        <div className="sell-form-overlay">
+
+      {/* Summary */}
+      {!loading && !error && holdings.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "20px",
+            flexWrap: "wrap",
+            marginTop: "20px",
+          }}
+        >
           <div
-            className="sell-form-container"
-            onClick={(e) => e.stopPropagation()}
+            style={{
+              flex: "1",
+              minWidth: "150px",
+              background: "#f5f5f5",
+              padding: "15px 20px",
+              borderRadius: "10px",
+              textAlign: "center",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            }}
           >
-            <div className="sell-form-header">
-              <h3 className="sell-form-title">Sell Stock</h3>
-              <button
-                className="close-button-x"
-                onClick={() => SetIsSell(false)}
-              >
-                ×
-              </button>
+            <h5 style={{ margin: "0 0 5px 0" }}>${formatNumber(totalInvestment)}</h5>
+            <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>Total investment</p>
+          </div>
+          <div
+            style={{
+              flex: "1",
+              minWidth: "150px",
+              background: "#f5f5f5",
+              padding: "15px 20px",
+              borderRadius: "10px",
+              textAlign: "center",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            }}
+          >
+            <h5 style={{ margin: "0 0 5px 0" }}>${formatNumber(currentValue)}</h5>
+            <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>Current value</p>
+          </div>
+          <div
+            style={{
+              flex: "1",
+              minWidth: "150px",
+              background: "#f5f5f5",
+              padding: "15px 20px",
+              borderRadius: "10px",
+              textAlign: "center",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            }}
+          >
+            <h5 style={{ margin: "0 0 5px 0", color: profit >= 0 ? "green" : "red" }}>
+              {profit >= 0 ? "+" : ""}{formatNumber(profit)} ({profitPercentage}%)
+            </h5>
+            <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>P&L</p>
+          </div>
+        </div>
+      )}
+
+      {/* Sell Modal */}
+      {isSell && selectedStock && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+          }}
+          onClick={() => setIsSell(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              padding: "20px",
+              width: "420px",
+              maxWidth: "90%",
+              boxShadow: "0px 8px 25px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
+              <h3>Sell Position</h3>
+              <button onClick={() => setIsSell(false)} style={{ background: "none", border: "none", fontSize: "22px", cursor: "pointer" }}>×</button>
             </div>
 
-            <div className="sell-form-content">
-              <div className="stock-info-display">
-                <div className="stock-symbol">
-                  {selectedStock.symbol} - {selectedStock.name}
-                </div>
-                <div className="stock-available">
-                  Available: {selectedStock.quantity} shares
-                </div>
-                <div className="stock-available">
-                  Current Price: ${selectedStock.actualPrice.toFixed(2)}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Quantity to Sell:</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={quantity}
-                  min="1"
-                  max={selectedStock.quantity}
-                  placeholder="Enter quantity"
-                  onChange={(e) => setQuantity(e.target.value)}
-                />
-                {quantity > selectedStock.quantity && (
-                  <span className="error-message">
-                    Quantity exceeds available shares
-                  </span>
-                )}
-              </div>
+            <div style={{ background: "#f8f9fa", padding: "10px", borderRadius: "8px", marginBottom: "15px" }}>
+              <div style={{ fontWeight: 600 }}>{selectedStock.symbol} - {selectedStock.name}</div>
+              <div>Available: {selectedStock.quantity}</div>
+              <div>Current Price: ${formatNumber(selectedStock.actualPrice)}</div>
             </div>
 
-            <div className="form-buttons">
+            <div style={{ marginBottom: "15px" }}>
+              <label>Quantity to Sell:</label>
+              <input
+                type="number"
+                value={quantity}
+                min="1"
+                max={selectedStock.quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", marginTop: "5px" }}
+              />
+              {quantity > selectedStock.quantity && <div style={{ color: "red", marginTop: "5px" }}>Quantity exceeds available shares</div>}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
               <button
-                className="sell-confirm-button"
-                disabled={
-                  !quantity ||
-                  quantity <= 0 ||
-                  quantity > selectedStock.quantity
-                }
+                disabled={!quantity || quantity <= 0 || quantity > selectedStock.quantity}
+                style={{
+                  background: !quantity || quantity <= 0 || quantity > selectedStock.quantity ? "#ccc" : "linear-gradient(135deg,#e74c3c,#c0392b)",
+                  color: "white",
+                  padding: "10px 18px",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontWeight: 600,
+                  cursor: !quantity || quantity <= 0 || quantity > selectedStock.quantity ? "not-allowed" : "pointer",
+                }}
               >
                 Confirm Sell
               </button>
-              <button className="close-btn">Cancel</button>
+              <button onClick={() => setIsSell(false)} style={{ background: "#ddd", padding: "10px 18px", border: "none", borderRadius: "6px", cursor: "pointer" }}>Cancel</button>
             </div>
           </div>
         </div>
       )}
-
-      <div className="row">
-        <div className="col">
-          <h5>${calInvestment()}. </h5>
-          <p>Total investment</p>
-        </div>
-        <div className="col">
-          <h5>${calActualValue()}. </h5>
-          <p>Current value</p>
-        </div>
-        <div className="col">
-          <h5 style={{ color: profit > 0 ? "green" : "red" }}>
-            {profit >= 0 ? "+" : ""}
-            {formatNumber(profit)} ({profitPercentage}%)
-          </h5>
-          <p>P&L</p>
-        </div>
-      </div>
-      {/* <VerticalGraph data={data} /> */}
     </div>
   );
 };
 
 export default Holdings;
+
+

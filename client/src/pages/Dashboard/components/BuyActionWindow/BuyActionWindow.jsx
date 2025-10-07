@@ -259,6 +259,7 @@ const BuyActionWindow = ({ data }) => {
               step="0.05"
               onChange={(e) => setStockPrice(e.target.value)}
               value={stockPrice}
+              readOnly={orderMode === "MARKET"}
             />
           </fieldset>
         </div>
@@ -270,7 +271,11 @@ const BuyActionWindow = ({ data }) => {
               name="orderMode"
               value="MARKET"
               checked={orderMode === "MARKET"}
-              onChange={() => setOrderMode("MARKET")}
+              onChange={() => {
+                setOrderMode("MARKET");
+                setStockPrice(data.price);
+              }}
+
             />
             Market
           </label>

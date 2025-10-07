@@ -108,13 +108,15 @@ function Footer() {
               flexDirection: isMobile ? "column" : "row",
               gap: isMobile ? "30px" : "40px",
               flex: 1,
+              justifyContent: isMobile ? "center" : "space-around",
             }}
           >
             {footerSections.map((section, index) => (
               <div
                 key={index}
                 className="footer-section"
-                style={{ textAlign: isMobile ? "center" : "left" }}
+                style={{ textAlign: isMobile ? "center" : "left",  flex: isMobile ? "none" : "1",}}
+                
               >
                 <h6
                   className="footer-title"
