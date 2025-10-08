@@ -25,23 +25,33 @@ connectDB();
 // Stock symbols
 const symbols = [
   "AAPL", "MSFT", "GOOGL", "AMZN", "META",
-  "TSLA", "NFLX", "NVDA", "BABA", "ORCL",
-  "INTC", "AMD", "IBM", "CSCO", "ADBE",
-  "PYPL", "QCOM", "SAP", "SHOP", "UBER",
-  "LYFT", "TWTR", "SQ", "ZM", "CRWD",
-  "DOCU", "PLTR", "SNOW", "COIN", "ROKU",
-  "BA", "DIS", "NKE", "MCD", "SBUX",
+  "TSLA", "NVDA", "NFLX", "ADBE", "ORCL",
+  "INTC", "AMD", "IBM", "CSCO", "QCOM",
+  "SAP", "CRM", "NOW", "SNOW", "PLTR",
+  "V", "MA", "PYPL", "SQ", "AXP",
+  "COIN", "INTU", "FIS", "FISV", "GPN",
+  "SHOP", "MELI", "WMT", "COST", "TGT",
+  "BABA", "JD", "PDD", "EBAY", "ETSY",
+  "UBER", "LYFT", "DAL", "UAL", "AAL",
+  "BA", "RCL", "CCL", "MAR", "ABNB",
+  "NKE", "MCD", "SBUX", "KO", "PEP",
+  "PG", "UL", "CL", "KMB", "GIS",
+  "XOM", "CVX", "BP", "SHEL", "COP",
+  "DUK", "NEE", "SO", "ENPH", "FSLR",
   "JPM", "GS", "MS", "BAC", "WFC",
-  "T", "VZ", "V", "MA", "AXP",
-  "WMT", "COST", "PEP", "KO", "PFE"
+  "C", "BLK", "SCHW", "TROW", "SPGI",
+  "PFE", "JNJ", "MRK", "ABBV", "LLY",
+  "UNH", "BMY", "AMGN", "GILD", "CVS",
+  "DIS", "PARA", "ROKU", "WBD", "SONY",
+  "TTWO", "EA", "MTCH", "SPOT", "ZM"
 ];
+
 
 
 // ✅ Stocks route
 app.get("/api/stocks", async (req, res) => {
   try {
 
-    // Check cache
     const cachedData = await client.get('stocks');
     if(cachedData){
       return res.json(JSON.parse(cachedData));
