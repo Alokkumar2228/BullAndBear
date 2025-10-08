@@ -45,7 +45,7 @@ const Menu = () => {
     { name: "Holdings", path: "/dashboard/holdings" },
     { name: "Positions", path: "/dashboard/positions" },
     { name: "Funds", path: "/dashboard/funds" },
-    { name: "Apps", path: "/dashboard/apps" },
+    // { name: "Apps", path: "/dashboard/apps" },
   ];
 
   return (
@@ -55,12 +55,12 @@ const Menu = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        // gap: "10px",
         padding: "10px 30px",
         borderBottom: "1px solid #eee",
         backgroundColor: "#fff",
-        marginTop:"-2px",
+        marginTop: "-2px",
         // height:"30px",
-      
       }}
     >
       {/* Logo */}
@@ -73,7 +73,7 @@ const Menu = () => {
         <ul
           style={{
             display: "flex",
-            gap: "40px",
+            gap: "60px",
             listStyle: "none",
             margin: 0,
             padding: 0,
@@ -157,33 +157,19 @@ const Menu = () => {
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                padding: "10px 16px",
-                backgroundColor: "#f44336",
-                color: "#fff",
+                padding: "8px 14px",
+                backgroundColor: "transparent",
+                color: "black",
                 border: "none",
                 borderRadius: "6px",
                 fontSize: "14px",
                 fontWeight: "500",
                 cursor: "pointer",
-                transition:
-                  "background-color 0.2s ease, transform 0.1s ease",
               }}
-              onMouseEnter={(e) =>
-                (e.target.style.backgroundColor = "#d32f2f")
-              }
-              onMouseLeave={(e) =>
-                (e.target.style.backgroundColor = "#f44336")
-              }
-              onMouseDown={(e) =>
-                (e.target.style.transform = "scale(0.96)")
-              }
-              onMouseUp={(e) =>
-                (e.target.style.transform = "scale(1)")
-              }
             >
               <i
                 className="fa-solid fa-right-from-bracket"
-                style={{ fontSize: "16px" }}
+                style={{ fontSize: "16px", color: "black" }}
               ></i>
               Logout
             </button>
