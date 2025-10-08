@@ -14,6 +14,8 @@ const Holdings = () => {
   const [isSelling, setIsSelling] = useState(false);
   const { getToken } = useAuth();
   const { handleSellStock } = useContext(GeneralContext);
+  // const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
+
 
   // Format number utility
   const formatNumber = (num) =>
@@ -201,10 +203,9 @@ const Holdings = () => {
                     <td
                       style={{
                         padding: "8px",
-                        color:
-                          stock.actualPrice >= stock.purchasePrice
-                            ? "green"
-                            : "red",
+                        color: stock.actualPrice >= stock.purchasePrice,
+                        // ? "green"
+                        // : "red",
                       }}
                     >
                       {formatNumber(stock.actualPrice)}
@@ -237,7 +238,7 @@ const Holdings = () => {
                         color: stock.changePercent >= 0 ? "green" : "red",
                       }}
                     >
-                      {stock.changePercent}%
+                      {stock.changePercent.toFixed(2)}%
                     </td>
                     <td style={{ padding: "8px" }}>
                       <button
@@ -428,6 +429,14 @@ const Holdings = () => {
               )}
             </div>
 
+            {/* Show market closed message */}
+            {/* {showMarketClosedMsg && (
+              <div style={{ color: "red", marginBottom: "10px" }}>
+                Stock market is closed. Please try again during market hours
+                (Mon–Fri, 9:30 AM – 4:00 PM).
+              </div>
+            )} */}
+
             <div
               style={{
                 display: "flex",
@@ -466,7 +475,36 @@ const Holdings = () => {
                   alignItems: "center",
                   gap: "8px",
                 }}
-                onClick={() => callStockSell(selectedStock, quantity)}
+                onClick={() => {
+                  // --- Market hours validation ---
+                  // const now = new Date();
+                  // const day = now.getDay(); // 0=Sun, 6=Sat
+                  // const hour = now.getHours();
+                  // const minutes = now.getMinutes();
+
+                  // let marketOpen = true;
+                  // if (day === 0 || day === 6) {
+                  //   marketOpen = false;
+                  // } else {
+                  //   const openMinutes = 9 * 60 + 30; // 9:30
+                  //   const closeMinutes = 16 * 60; // 16:00
+                  //   const currentMinutes = hour * 60 + minutes;
+                  //   if (
+                  //     currentMinutes < openMinutes ||
+                  //     currentMinutes > closeMinutes
+                  //   ) {
+                  //     marketOpen = false;
+                  //   }
+                  // }
+
+                  // if (!marketOpen) {
+                  //   setShowMarketClosedMsg(true);
+                  //   return;
+                  // }
+
+                  // setShowMarketClosedMsg(false);
+                  callStockSell(selectedStock, quantity);
+                }}
               >
                 {isSelling && (
                   <div
