@@ -442,44 +442,6 @@ export const processSettlements = async (req, res) => {
   }
 };
 
-// Delete Order
-export const deleteOrder = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    if (!userId) {
-      return res
-        .status(401)
-        .json({ message: "Unauthorized: No user ID found" });
-    }
-
-    const orderId = req.params.id;
-
-    const deletedOrder = await Order.findOneAndDelete({
-      _id: orderId,
-      userId, // Ensure user owns the order
-    });
-
-    if (!deletedOrder) {
-      return res
-        .status(404)
-        .json({ message: "Order not found or unauthorized" });
-    }
-
-    
-    res.status(200).json({ message: "Order deleted successfully" });
-  } catch (err) {
-
-
-    res.status(500).json({ message: "Error deleting order", error: err.message });
-
-    console.error("Delete order error:", err);
-    res
-      .status(500)
-      .json({ message: "Error deleting order", error: err.message });
-
-  }
-};
-
 //sell stock
 export const sellStock = async (req, res) => {
   const parseResult = sellSchema.safeParse(req.body);
@@ -586,7 +548,7 @@ export const getAllOrders = async (req, res) => {
   }
 
   try {
-    const allOrders = await userallOrder.find({ userId });
+    const allOrders = await userallOrder.find({ userId }).sort({ executedAt: -1 });
     if (!allOrders || allOrders.length === 0) {
       return res.status(404).json({ message: "No orders found for this user" });
     }
