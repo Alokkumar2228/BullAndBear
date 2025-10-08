@@ -105,14 +105,14 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // ✅ Intraday validation
-    if (orderType === "INTRADAY" && !isWithinMarketHours()) {
-      await session.abortTransaction();
-      await session.endSession();
-      return res.status(400).json({
-        message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
-      });
-    }
+    // // ✅ Intraday validation
+    // if (orderType === "INTRADAY" && !isWithinMarketHours()) {
+    //   await session.abortTransaction();
+    //   await session.endSession();
+    //   return res.status(400).json({
+    //     message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
+    //   });
+    // }
 
     // ✅ Base order object
     const baseOrder = {

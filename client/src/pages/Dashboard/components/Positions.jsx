@@ -1,14 +1,18 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
+import { GeneralContext } from "./GeneralContext";
 
 const Positions = () => {
   const [positions, setPositions] = useState([]);
-  const [isSell, SetIsSell] = useState(false);
+  const [isSell, setIsSell] = useState(false);
   const [selectedStock, setSelectedStock] = useState(null);
   const [quantity, setQuantity] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSelling, setIsSelling] = useState(false);
+  const { handleSellStock } = useContext(GeneralContext);
+  const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
   const { getToken } = useAuth();
 
   const formatNumber = (num) => {
@@ -25,7 +29,7 @@ const Positions = () => {
       const authToken = await getToken();
 
       const response = await axios.get(
-        "http://localhost:8000/api/order/get-user-order?type=FNO,INTERDAY",
+        "http://localhost:8000/api/order/get-user-order?type=FNO,INTRADAY",
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -51,7 +55,7 @@ const Positions = () => {
   }, [getToken]);
 
   const handleSell = (stock) => {
-    SetIsSell(true);
+    setIsSell(true);
     setSelectedStock(stock);
     setQuantity(stock.quantity); // default sell full quantity
   };
@@ -62,6 +66,23 @@ const Positions = () => {
     return () => clearInterval(interval);
   }, [fetchPositions]);
 
+  const callStockSell = async (stock, qty) => {
+    setIsSelling(true);
+    try {
+      const res = await handleSellStock(stock, qty);
+      if (res?.success) {
+        await fetchPositions();
+        setIsSell(false);  // hide modal
+      } else {
+        console.error("Sell failed:", res?.message);
+      }
+    } catch (err) {
+      console.error("Error in callStockSell:", err);
+    } finally {
+      setIsSelling(false);
+    }
+  };
+    // ✅ Calculations
   const totalInvestment = positions.reduce(
     (sum, stock) => sum + stock.quantity * stock.purchasePrice,
     0
@@ -187,8 +208,8 @@ const Positions = () => {
                         padding: "8px",
                         color:
                           stock.actualPrice >= stock.purchasePrice
-                            ? "green"
-                            : "red",
+                            // ? "green"
+                            // : "red",
                       }}
                     >
                       {formatNumber(stock.actualPrice)}
@@ -221,7 +242,7 @@ const Positions = () => {
                         color: stock.changePercent >= 0 ? "green" : "red",
                       }}
                     >
-                      {stock.changePercent}%
+                      {stock.changePercent.toFixed(2)}%
                     </td>
                     <td style={{ padding: "8px" }}>
                       <button
@@ -330,8 +351,8 @@ const Positions = () => {
         </div>
       )}
 
-      {/* Sell Modal */}
-      {isSell && selectedStock && (
+    {/* Sell Modal */}
+    {isSell && selectedStock && (
         <div
           style={{
             position: "fixed",
@@ -345,7 +366,7 @@ const Positions = () => {
             justifyContent: "center",
             zIndex: 999,
           }}
-          onClick={() => SetIsSell(false)}
+          onClick={() => setIsSelling(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -367,7 +388,7 @@ const Positions = () => {
             >
               <h3>Sell Position</h3>
               <button
-                onClick={() => SetIsSell(false)}
+                onClick={() => setIsSell(false)}
                 style={{
                   background: "none",
                   border: "none",
@@ -403,13 +424,13 @@ const Positions = () => {
                 value={quantity}
                 min="1"
                 max={selectedStock.quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={(e) => setQuantity(Number(e.target.value))}
                 style={{
                   width: "100%",
                   padding: "10px",
-                  marginTop: "5px",
                   borderRadius: "6px",
                   border: "1px solid #ccc",
+                  marginTop: "5px",
                 }}
               />
               {quantity > selectedStock.quantity && (
@@ -418,6 +439,14 @@ const Positions = () => {
                 </div>
               )}
             </div>
+
+            {/* Show market closed message */}
+            {showMarketClosedMsg && (
+              <div style={{ color: "red", marginBottom: "10px" }}>
+                Stock market is closed. Please try again during market hours
+                (Mon–Fri, 9:30 AM – 4:00 PM).
+              </div>
+            )}
 
             <div
               style={{
@@ -430,32 +459,80 @@ const Positions = () => {
                 disabled={
                   !quantity ||
                   quantity <= 0 ||
-                  quantity > selectedStock.quantity
+                  quantity > selectedStock.quantity ||
+                  isSelling
                 }
                 style={{
                   background:
                     !quantity ||
                     quantity <= 0 ||
-                    quantity > selectedStock.quantity
+                    quantity > selectedStock.quantity ||
+                    isSelling
                       ? "#ccc"
                       : "linear-gradient(135deg,#e74c3c,#c0392b)",
                   color: "white",
                   padding: "10px 18px",
                   border: "none",
                   borderRadius: "6px",
+                  fontWeight: 600,
                   cursor:
                     !quantity ||
                     quantity <= 0 ||
-                    quantity > selectedStock.quantity
+                    quantity > selectedStock.quantity ||
+                    isSelling
                       ? "not-allowed"
                       : "pointer",
-                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+                onClick={() => {
+                  // --- Market hours validation ---
+                  const now = new Date();
+                  const day = now.getDay(); // 0=Sun, 6=Sat
+                  const hour = now.getHours();
+                  const minutes = now.getMinutes();
+
+                  let marketOpen = true;
+                  if (day === 0 || day === 6) {
+                    marketOpen = false;
+                  } else {
+                    const openMinutes = 9 * 60 + 30; // 9:30
+                    const closeMinutes = 16 * 60; // 16:00
+                    const currentMinutes = hour * 60 + minutes;
+                    if (
+                      currentMinutes < openMinutes ||
+                      currentMinutes > closeMinutes
+                    ) {
+                      marketOpen = false;
+                    }
+                  }
+
+                  if (!marketOpen) {
+                    setShowMarketClosedMsg(true);
+                    return;
+                  }
+
+                  setShowMarketClosedMsg(false);
+                  callStockSell(selectedStock, quantity);
                 }}
               >
-                Confirm Sell
+                {isSelling && (
+                  <div
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      border: "2px solid #fff",
+                      borderTop: "2px solid transparent",
+                      borderRadius: "50%",
+                      animation: "spin 0.8s linear infinite",
+                    }}
+                  />
+                )}
+                {isSelling ? "Selling..." : "Confirm Sell"}
               </button>
               <button
-                onClick={() => SetIsSell(false)}
+                onClick={() => setIsSell(false)}
                 style={{
                   background: "#ddd",
                   padding: "10px 18px",
