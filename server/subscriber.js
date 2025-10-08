@@ -50,6 +50,7 @@ await subscriber.subscribe("stockSold", async (message) => {
     // Get USD → INR rate
     const usdInrRate = await getUsdInrRate();
     const totalAmountInRupee = quantity * sellPrice * usdInrRate;
+    const totalInvestmentRupee = quantity * purchasePrice * usdInrRate;
 
     // Update user balance and invested amount
     const updatedUser = await User.findOneAndUpdate(
@@ -57,7 +58,7 @@ await subscriber.subscribe("stockSold", async (message) => {
       {
         $inc: {
           balance: totalAmountInRupee,
-          investedAmount: -totalAmountInRupee,
+          investedAmount: -totalInvestmentRupee,
         },
       },
       { new: true }

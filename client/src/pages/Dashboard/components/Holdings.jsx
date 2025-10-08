@@ -11,6 +11,7 @@ const Holdings = () => {
   const [quantity, setQuantity] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSelling, setIsSelling] = useState(false);
   const { getToken } = useAuth();
   const { handleSellStock } = useContext(GeneralContext);
 
@@ -47,9 +48,7 @@ const Holdings = () => {
       console.error("Error fetching delivery orders:", err);
       setHoldings([]);
       setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to fetch holdings"
+        err.response?.data?.message || err.message || "Failed to fetch holdings"
       );
     } finally {
       setLoading(false);
@@ -65,6 +64,23 @@ const Holdings = () => {
     setIsSell(true);
     setSelectedStock(stock);
     setQuantity(stock.quantity); // default to full quantity
+  };
+
+  const callStockSell = async (stock, qty) => {
+    setIsSelling(true);
+    try {
+      const res = await handleSellStock(stock, qty);
+      if (res?.success) {
+        await fetchHoldings();
+        setIsSell(false);
+      } else {
+        console.error("Sell failed:", res?.message);
+      }
+    } catch (err) {
+      console.error("Error in callStockSell:", err);
+    } finally {
+      setIsSelling(false);
+    }
   };
 
   // ✅ Calculations
@@ -421,13 +437,17 @@ const Holdings = () => {
             >
               <button
                 disabled={
-                  !quantity || quantity <= 0 || quantity > selectedStock.quantity
+                  !quantity ||
+                  quantity <= 0 ||
+                  quantity > selectedStock.quantity ||
+                  isSelling
                 }
                 style={{
                   background:
                     !quantity ||
                     quantity <= 0 ||
-                    quantity > selectedStock.quantity
+                    quantity > selectedStock.quantity ||
+                    isSelling
                       ? "#ccc"
                       : "linear-gradient(135deg,#e74c3c,#c0392b)",
                   color: "white",
@@ -438,13 +458,29 @@ const Holdings = () => {
                   cursor:
                     !quantity ||
                     quantity <= 0 ||
-                    quantity > selectedStock.quantity
+                    quantity > selectedStock.quantity ||
+                    isSelling
                       ? "not-allowed"
                       : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
-                onClick={() => handleSellStock(selectedStock, quantity)}
+                onClick={() => callStockSell(selectedStock, quantity)}
               >
-                Confirm Sell
+                {isSelling && (
+                  <div
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      border: "2px solid #fff",
+                      borderTop: "2px solid transparent",
+                      borderRadius: "50%",
+                      animation: "spin 0.8s linear infinite",
+                    }}
+                  />
+                )}
+                {isSelling ? "Selling..." : "Confirm Sell"}
               </button>
               <button
                 onClick={() => setIsSell(false)}
