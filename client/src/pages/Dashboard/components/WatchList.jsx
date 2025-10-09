@@ -1,10 +1,10 @@
 import React, { useState, useContext } from "react";
 import { ContextApi } from "@/context/ContextApi";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
+import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget"; // Import your TradingView component
 
-// import GeneralContext from "./GeneralContext";
-
-import { Tooltip, Grow } from "@mui/material";
+import { Tooltip, Grow, Dialog, DialogContent, IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 import {
   BarChartOutlined,
@@ -13,41 +13,8 @@ import {
   MoreHoriz,
 } from "@mui/icons-material";
 
-// import { watchlist } from '@/pages/Dashboard/data/data';
-// import { DoughnutChart } from "./DoughnoutChart";
-
 const WatchList = () => {
   const { watchlist } = useContext(ContextApi);
-
-  /* Commented out chart data until DoughnutChart component is used
-  const labels = watchlist.map((subArray) => subArray["name"]);
-  const data = {
-    labels,
-    datasets: [
-      {
-        label: "Price",
-        data: watchlist.map((stock) => stock.price),
-        backgroundColor: [
-          "rgba(255, 99, 132, 0.5)",
-          "rgba(54, 162, 235, 0.5)",
-          "rgba(255, 206, 86, 0.5)",
-          "rgba(75, 192, 192, 0.5)",
-          "rgba(153, 102, 255, 0.5)",
-          "rgba(255, 159, 64, 0.5)",
-        ],
-        borderColor: [
-          "rgba(255, 99, 132, 1)",
-          "rgba(54, 162, 235, 1)",
-          "rgba(255, 206, 86, 1)",
-          "rgba(75, 192, 192, 1)",
-          "rgba(153, 102, 255, 1)",
-          "rgba(255, 159, 64, 1)",
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
-  */
 
   return (
     <div className="watchlist-container">
@@ -67,8 +34,6 @@ const WatchList = () => {
           return <WatchListItem stock={stock} key={index} />;
         })}
       </ul>
-
-      {/* <DoughnutChart data={data} /> */}
     </div>
   );
 };
@@ -88,7 +53,7 @@ const WatchListItem = ({ stock }) => {
 
   return (
     <li onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      <div className="item">
+      <div className="item" style={{cursor:"move"}}>
         <p className={stock.isDown ? "down" : "up"}>{stock.name}</p>
         <div className="itemInfo">
           <span className="percent">{stock.percent}</span>
@@ -110,114 +75,171 @@ const WatchListItem = ({ stock }) => {
       )}
     </li>
   );
-  
 };
 
 const WatchListActions = ({ uid, data }) => {
   const { handleOpenBuyWindow } = useContext(GeneralContext);
+  const [showChart, setShowChart] = useState(false);
 
   const handleBuyClick = () => {
     handleOpenBuyWindow(uid, data);
   };
 
+  const handleChartClick = () => {
+    setShowChart(true);
+  };
+
+  const handleCloseChart = () => {
+    setShowChart(false);
+  };
+
   return (
-    <span className="actions">
-      <span>
-        <Tooltip
-          title="Buy (B)"
-          placement="top"
-          arrow
-          TransitionComponent={Grow}
-          onClick={handleBuyClick}
-        >
-          <button
-            style={{
-              background: "linear-gradient(135deg, #4caf50 0%, #43a047 100%)",
-              color: "#fff",
-              border: "1px solid #43a047",
-              borderRadius: "6px",
-              padding: "8px 16px",
-              fontSize: "14px",
-              fontWeight: "600",
-              cursor: "pointer",
-              boxShadow: "0 2px 6px rgba(76, 175, 80, 0.3)",
-              transition: "all 0.2s ease-in-out",
-            }}
+    <>
+      <span className="actions" >
+        <span >
+          <Tooltip
+            title="Buy (B)"
+            placement="top"
+            arrow
+            onClick={handleBuyClick}
           >
-            Buy
-          </button>
-        </Tooltip>
-        <Tooltip
-          title="Sell (S)"
-          placement="top"
-          arrow
-          TransitionComponent={Grow}
-        >
-          <button
-            style={{
-              background: "linear-gradient(135deg,rgb(244, 9, 28) 0%,rgb(251, 15, 15) 100%)",
-              color: "white",
-              border: "1px #ff5722",
-              borderRadius: "6px",
-              padding: "8px 16px",
-              fontSize: "14px",
-              fontWeight: "600",
-              cursor: "pointer",
-              boxShadow: "0 2px 6px rgba(255, 87, 34, 0.3)",
-              transition: "all 0.2s ease-in-out",
-            }}
+            <button
+              style={{
+                background: "linear-gradient(135deg, #4caf50 0%, #43a047 100%)",
+                color: "#fff",
+                border: "1px solid #43a047",
+                borderRadius: "6px",
+                padding: "8px 16px",
+                fontSize: "14px",
+                fontWeight: "600",
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(76, 175, 80, 0.3)",
+                transition: "all 0.2s ease-in-out",
+              }}
+            >
+              Buy
+            </button>
+          </Tooltip>
+          <Tooltip
+            title="Sell (S)"
+            placement="top"
+            arrow
+            
           >
-            Sell
-          </button>
-        </Tooltip>
-        <Tooltip
-          title="Analytics (A)"
-          placement="top"
-          arrow
-          TransitionComponent={Grow}
-        >
-          <button
-            style={{
-              background: "#fff",
-              color: "#5f6368",
-              border: "1.5px solid #dadce0",
-              borderRadius: "6px",
-              padding: "6px",
-              minWidth: "36px",
-              height: "36px",
-              // display: "flex",
-              // alignItems: "center",
-              // justifyContent: "center",
-              cursor: "pointer",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-              transition: "all 0.2s ease-in-out",
-            }}
+            <button
+              style={{
+                background: "linear-gradient(135deg,rgb(244, 9, 28) 0%,rgb(251, 15, 15) 100%)",
+                color: "white",
+                border: "1px #ff5722",
+                borderRadius: "6px",
+                padding: "8px 16px",
+                fontSize: "14px",
+                fontWeight: "600",
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(255, 87, 34, 0.3)",
+                transition: "all 0.2s ease-in-out",
+              }}
+            >
+              Sell
+            </button>
+          </Tooltip>
+          <Tooltip
+            title="Analytics (A)"
+            placement="top"
+            arrow
+            TransitionComponent={Grow}
           >
-            <BarChartOutlined style={{ fontSize: "18px", color: "#5f6368" }} />
-          </button>
-        </Tooltip>
-        <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}>
-          <button
-            style={{
-              background: "#fff",
-              color: "#5f6368",
-              border: "1.5px solid #dadce0",
-              borderRadius: "6px",
-              padding: "6px",
-              minWidth: "36px",
-              height: "36px",
-              // display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-              transition: "all 0.2s ease-in-out",
-            }}
-          >
-            <MoreHoriz style={{ fontSize: "18px", color: "#5f6368" }} />
-          </button>
-        </Tooltip>
+            <button
+              onClick={handleChartClick}
+              style={{
+                background: "#fff",
+                color: "#5f6368",
+                border: "1.5px solid #dadce0",
+                borderRadius: "6px",
+                padding: "6px",
+                minWidth: "36px",
+                height: "36px",
+                marginTop: "5px",
+                cursor: "pointer",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                transition: "all 0.2s ease-in-out",
+              }}
+            >
+              <BarChartOutlined style={{ fontSize: "18px", color: "#5f6368" }} />
+            </button>
+          </Tooltip>
+          <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}>
+            <button
+              style={{
+                background: "#fff",
+                color: "#5f6368",
+                border: "1.5px solid #dadce0",
+                borderRadius: "6px",
+                padding: "6px",
+                minWidth: "36px",
+                height: "36px",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                transition: "all 0.2s ease-in-out",
+              }}
+            >
+              <MoreHoriz style={{ fontSize: "18px", color: "#5f6368" }} />
+            </button>
+          </Tooltip>
+        </span>
       </span>
-    </span>
+
+      {/* Chart Dialog/Modal */}
+      <Dialog
+        open={showChart}
+        onClose={handleCloseChart}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          style: {
+            minHeight: "80vh",
+            maxHeight: "90vh",
+            backgroundColor: "#0F0F0F",
+          },
+        }}
+      >
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          padding: "16px 24px",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+          backgroundColor: "#0F0F0F"
+        }}>
+          <div>
+            <span style={{ fontSize: "20px", fontWeight: "600", color: "#fff" }}>
+              {data.name}
+            </span>
+            <span style={{ 
+              marginLeft: "16px", 
+              fontSize: "16px", 
+              color: data.isDown ? "#f44336" : "#4caf50",
+              fontWeight: "600"
+            }}>
+              {data.price} ({data.percent})
+            </span>
+          </div>
+          <IconButton 
+            onClick={handleCloseChart} 
+            size="small"
+            style={{ color: "#fff" }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </div>
+        <DialogContent style={{ padding: 0, backgroundColor: "#0F0F0F" }}>
+          <div style={{ height: "calc(80vh - 80px)", width: "100%" }}>
+            <TradingViewWidget symbol={data.symbol} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

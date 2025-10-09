@@ -239,71 +239,79 @@ export const getUserOrders = async (req, res) => {
     const orderTypeQuery = req.query.type;
 
     if (!userId) {
-      return res
-        .status(401)
-        .json({ message: "Unauthorized: No user ID found" });
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
     }
 
     const orders = await Order.find({ userId });
-
     if (!orders || orders.length === 0) {
       return res.status(404).json({ message: "No orders found for this user" });
     }
 
-    const symbols = orders.map((order) => order.symbol);
+    const symbols = [...new Set(orders.map(o => o.symbol))];
 
-    // 1️⃣ Check if live data is cached in Redis
+    // 1️⃣ Check if live data is cached
     const cachedData = await client.get("userOrders");
     let liveData;
 
     if (cachedData) {
       liveData = JSON.parse(cachedData);
     } else {
-      // 2️⃣ Fetch live data from Yahoo Finance if not cached
       const quotes = await yahooFinance.quote(symbols);
 
-      liveData = quotes.map((q) => ({
+      liveData = quotes.map(q => ({
         symbol: q.symbol,
         name: q.shortName,
         price: q.regularMarketPrice,
         change: q.regularMarketChange,
-        changePercent: q.regularMarketChangePercent,
+        changePercent: q.regularMarketChangePercent
       }));
 
-      // 3️⃣ Cache live data in Redis for 1 hour
       await client.set("userOrders", JSON.stringify(liveData), { EX: 3600 });
     }
 
-    // 4️⃣ Update each order document with latest data and save
-    const updatedOrders = [];
+    // 2️⃣ Create liveMap for O(1) lookup
+    const liveMap = new Map(liveData.map(item => [item.symbol, item]));
+
+    // 3️⃣ Prepare bulk update operations
+    const bulkOps = [];
     for (const order of orders) {
-      const live = liveData.find((l) => l.symbol === order.symbol);
+      const live = liveMap.get(order.symbol);
       if (live) {
-        order.actualPrice = live.price;
+        order.actualPrice = live.price;          // update in memory for response
         order.changePercent = live.changePercent;
-        await order.save(); // save changes to MongoDB
+
+        bulkOps.push({
+          updateOne: {
+            filter: { orderId: order.orderId },  // unique order identifier
+            update: { $set: { 
+              actualPrice: live.price,
+              changePercent: live.changePercent
+            }}
+          }
+        });
       }
-      updatedOrders.push(order);
     }
 
-    let filterOrders = updatedOrders;
+    // 4️⃣ Perform all updates in a single bulkWrite
+    if (bulkOps.length > 0) {
+      await Order.bulkWrite(bulkOps);
+    }
+
+    // 5️⃣ Filter by order type if requested
+    let filterOrders = orders;
     if (orderTypeQuery) {
-      const orderTypes = orderTypeQuery
-        .split(",")
-        .map((type) => type.trim().toUpperCase());
-      filterOrders = updatedOrders.filter((order) =>
-        orderTypes.includes(order.orderType)
-      );
+      const orderTypes = orderTypeQuery.split(",").map(t => t.trim().toUpperCase());
+      filterOrders = orders.filter(o => orderTypes.includes(o.orderType));
     }
 
     return res.status(200).json(filterOrders);
+
   } catch (error) {
     console.error("Error fetching user orders:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // Update Order Status
 export const updateOrderStatus = async (req, res) => {
