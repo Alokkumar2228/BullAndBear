@@ -12,6 +12,7 @@ const BuyActionWindow = ({ data }) => {
   const currency = "USD";
   const [orderType, setOrderType] = useState("DELIVERY");
   const [orderMode, setOrderMode] = useState("MARKET");
+  const {findTransactionData ,findUserFundsData} = useContext(GeneralContext);
 
   const BASE_URL = import.meta.env.VITE_BASE_URL
 
@@ -159,9 +160,7 @@ const BuyActionWindow = ({ data }) => {
         status: "PENDING",
         placedAt: new Date().toISOString(),
       };
-
-      
-      const response = await axios.post(
+      await axios.post(
         `${BASE_URL}/api/order/create`,
         orderPayload,
         {
@@ -172,9 +171,11 @@ const BuyActionWindow = ({ data }) => {
         }
       );
 
-      console.log("Order created successfully:", response.data);
+      // console.log("Order created successfully:", response.data);
       // You might want to trigger a refresh of the orders list here
       handleCloseBuyWindow();
+      await findUserFundsData();
+      await findTransactionData();
       // You can dispatch an event or call a callback to refresh the orders list
     } catch (error) {
       setError(

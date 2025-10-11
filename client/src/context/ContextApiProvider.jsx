@@ -4,7 +4,6 @@ import { useState , useEffect } from "react";
 // import { useNavigate } from "react-router-dom";
 // import {useSession } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
-import {useAuth} from "@clerk/clerk-react";
 
 
 export const ContextApiProvider =({children}) =>{
@@ -12,10 +11,8 @@ export const ContextApiProvider =({children}) =>{
 
 
     const {user} = useUser();
-    const {userId} = useAuth();
-
-    console.log("Userid",userId);
-    console.log("User",user); 
+   
+    // console.log("User",user); 
    
 
     const user_name = user?.primaryEmailAddress?.emailAddress.split("@")[0]; localStorage.setItem("user_name" , user_name);

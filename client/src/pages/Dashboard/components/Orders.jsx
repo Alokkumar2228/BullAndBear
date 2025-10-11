@@ -16,7 +16,7 @@ export default function Orders() {
   const fetchOrderData = React.useCallback(async () => {
     setError(null);
     const authToken = await getToken();
-    console.log("authToken:", authToken);
+    // console.log("authToken:", authToken);
     
     try {
       setLoading(true);
@@ -31,18 +31,18 @@ export default function Orders() {
         }
       );
 
-      console.log('Current filter:', filter);
-      console.log('All orders:', response.data.orders);
+      // console.log('Current filter:', filter);
+      // console.log('All orders:', response.data.orders);
       
       if (filter !== 'all' && response.data.orders) {
         const filteredOrders = response.data.orders.filter(order => {
-          console.log('Checking order:', order);
+          // console.log('Checking order:', order);
           return order.orderType === filter;
         });
-        console.log('Filtered orders:', filteredOrders);
+        // console.log('Filtered orders:', filteredOrders);
         setOrders(filteredOrders);
       } else {
-        console.log('Setting all orders');
+        // console.log('Setting all orders');
         setOrders(response.data.orders || []);
       }
     } catch (err) {
@@ -128,7 +128,7 @@ export default function Orders() {
             style={styles.filterSelect} 
             value={filter} 
             onChange={(e) => {
-              console.log('Filter changed to:', e.target.value);
+              // console.log('Filter changed to:', e.target.value);
               setFilter(e.target.value);
             }}
           >
