@@ -12,7 +12,7 @@ const Positions = () => {
   const [error, setError] = useState(null);
   const [isSelling, setIsSelling] = useState(false);
   const { handleSellStock } = useContext(GeneralContext);
-  const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
+  // const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
   const { getToken } = useAuth();
 
   const formatNumber = (num) => {
@@ -441,12 +441,12 @@ const Positions = () => {
             </div>
 
             {/* Show market closed message */}
-            {showMarketClosedMsg && (
+            {/* {showMarketClosedMsg && (
               <div style={{ color: "red", marginBottom: "10px" }}>
                 Stock market is closed. Please try again during market hours
                 (Mon–Fri, 9:30 AM – 4:00 PM).
               </div>
-            )}
+            )} */}
 
             <div
               style={{
@@ -488,32 +488,32 @@ const Positions = () => {
                 }}
                 onClick={() => {
                   // --- Market hours validation ---
-                  const now = new Date();
-                  const day = now.getDay(); // 0=Sun, 6=Sat
-                  const hour = now.getHours();
-                  const minutes = now.getMinutes();
+                  // const now = new Date();
+                  // const day = now.getDay(); // 0=Sun, 6=Sat
+                  // const hour = now.getHours();
+                  // const minutes = now.getMinutes();
 
-                  let marketOpen = true;
-                  if (day === 0 || day === 6) {
-                    marketOpen = false;
-                  } else {
-                    const openMinutes = 9 * 60 + 30; // 9:30
-                    const closeMinutes = 16 * 60; // 16:00
-                    const currentMinutes = hour * 60 + minutes;
-                    if (
-                      currentMinutes < openMinutes ||
-                      currentMinutes > closeMinutes
-                    ) {
-                      marketOpen = false;
-                    }
-                  }
+                  // let marketOpen = true;
+                  // if (day === 0 || day === 6) {
+                  //   marketOpen = false;
+                  // } else {
+                  //   const openMinutes = 9 * 60 + 30; // 9:30
+                  //   const closeMinutes = 16 * 60; // 16:00
+                  //   const currentMinutes = hour * 60 + minutes;
+                  //   if (
+                  //     currentMinutes < openMinutes ||
+                  //     currentMinutes > closeMinutes
+                  //   ) {
+                  //     marketOpen = false;
+                  //   }
+                  // }
 
-                  if (!marketOpen) {
-                    setShowMarketClosedMsg(true);
-                    return;
-                  }
+                  // if (!marketOpen) {
+                  //   setShowMarketClosedMsg(true);
+                  //   return;
+                  // }
 
-                  setShowMarketClosedMsg(false);
+                  // setShowMarketClosedMsg(false);
                   callStockSell(selectedStock, quantity);
                 }}
               >

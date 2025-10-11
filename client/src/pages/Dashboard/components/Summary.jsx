@@ -24,7 +24,7 @@ const Summary = () => {
           },
         }
       );
-      console.log("Order created successfully:", response.data);
+      // console.log("Order created successfully:", response.data);
       setAllHoldings(response.data);
     } catch (error) {
       console.error(

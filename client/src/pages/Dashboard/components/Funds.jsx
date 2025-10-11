@@ -60,6 +60,8 @@ const Funds = () => {
     const addAmount = parseFloat(amount);
     if (addAmount && addAmount > 0 && addAmount <= 50000) {
       await createOrder(addAmount, authToken,findUserFundsData,findTransactionData);
+      await findUserFundsData();
+      await findTransactionData();
     }
   };
 
@@ -81,7 +83,7 @@ const Funds = () => {
 
       const response = await withdrawFund(data);
 
-      console.log(response);
+      // console.log(response);
 
       // Show loading for 2 seconds
       setTimeout(async () => {
