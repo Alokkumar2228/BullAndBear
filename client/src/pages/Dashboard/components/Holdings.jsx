@@ -17,6 +17,8 @@ const Holdings = () => {
   // const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
 
 
+  const BASE_URL = import.meta.env.VITE_BASE_URL
+
   // Format number utility
   const formatNumber = (num) =>
     new Intl.NumberFormat("en-IN", {
@@ -32,7 +34,7 @@ const Holdings = () => {
       const authToken = await getToken();
 
       const response = await axios.get(
-        "http://localhost:8000/api/order/get-user-order?type=DELIVERY",
+        `${BASE_URL}/api/order/get-user-order?type=DELIVERY`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -415,7 +417,14 @@ const Holdings = () => {
                 value={quantity}
                 min="1"
                 max={selectedStock.quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val === 0) {
+                    setQuantity(""); // remove input if user types 0
+                  } else {
+                    setQuantity(val);
+                  }
+                }}
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -424,6 +433,7 @@ const Holdings = () => {
                   marginTop: "5px",
                 }}
               />
+
               {quantity > selectedStock.quantity && (
                 <div style={{ color: "red", marginTop: "5px" }}>
                   Quantity exceeds available shares
@@ -431,8 +441,8 @@ const Holdings = () => {
               )}
             </div>
 
-            {/* Show market closed message */}
-            {/* {showMarketClosedMsg && (
+            {/* Show market closed message
+            {showMarketClosedMsg && (
               <div style={{ color: "red", marginBottom: "10px" }}>
                 Stock market is closed. Please try again during market hours
                 (Mon–Fri, 9:30 AM – 4:00 PM).
@@ -504,7 +514,7 @@ const Holdings = () => {
                   //   return;
                   // }
 
-                  // setShowMarketClosedMsg(false);
+                  // // setShowMarketClosedMsg(false);
                   callStockSell(selectedStock, quantity);
                 }}
               >

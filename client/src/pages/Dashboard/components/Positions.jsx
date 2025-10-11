@@ -15,6 +15,9 @@ const Positions = () => {
   // const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
   const { getToken } = useAuth();
 
+
+  const BASE_URL = import.meta.env.VITE_BASE_URL
+
   const formatNumber = (num) => {
     return new Intl.NumberFormat("en-IN", {
       minimumFractionDigits: 2,
@@ -29,14 +32,13 @@ const Positions = () => {
       const authToken = await getToken();
 
       const response = await axios.get(
-        "http://localhost:8000/api/order/get-user-order?type=FNO,INTRADAY",
+        `${BASE_URL}/api/order/get-user-order?type=FNO,INTRADAY`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
           },
         }
-
       );
       if (!response.data || !Array.isArray(response.data)) {
         throw new Error("Invalid response format from server");
@@ -72,7 +74,7 @@ const Positions = () => {
       const res = await handleSellStock(stock, qty);
       if (res?.success) {
         await fetchPositions();
-        setIsSell(false);  // hide modal
+        setIsSell(false); // hide modal
       } else {
         console.error("Sell failed:", res?.message);
       }
@@ -82,7 +84,7 @@ const Positions = () => {
       setIsSelling(false);
     }
   };
-    // ✅ Calculations
+  // ✅ Calculations
   const totalInvestment = positions.reduce(
     (sum, stock) => sum + stock.quantity * stock.purchasePrice,
     0
@@ -206,10 +208,9 @@ const Positions = () => {
                     <td
                       style={{
                         padding: "8px",
-                        color:
-                          stock.actualPrice >= stock.purchasePrice
-                            // ? "green"
-                            // : "red",
+                        color: stock.actualPrice >= stock.purchasePrice,
+                        // ? "green"
+                        // : "red",
                       }}
                     >
                       {formatNumber(stock.actualPrice)}
@@ -351,8 +352,8 @@ const Positions = () => {
         </div>
       )}
 
-    {/* Sell Modal */}
-    {isSell && selectedStock && (
+      {/* Sell Modal */}
+      {isSell && selectedStock && (
         <div
           style={{
             position: "fixed",
@@ -424,7 +425,14 @@ const Positions = () => {
                 value={quantity}
                 min="1"
                 max={selectedStock.quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val === 0) {
+                    setQuantity(""); // remove input if user types 0
+                  } else {
+                    setQuantity(val);
+                  }
+                }}
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -433,6 +441,7 @@ const Positions = () => {
                   marginTop: "5px",
                 }}
               />
+
               {quantity > selectedStock.quantity && (
                 <div style={{ color: "red", marginTop: "5px" }}>
                   Quantity exceeds available shares

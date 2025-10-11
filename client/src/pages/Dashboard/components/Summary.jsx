@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import "./dashboard.css";
 
+
+const BASE_URL = import.meta.env.VITE_BASE_URL
 const Summary = () => {
   const user = localStorage.getItem("user_name");
 
@@ -15,7 +17,7 @@ const Summary = () => {
     try {
       const authToken = await getToken();
       const response = await axios.post(
-        "http://localhost:8000/api/order/find",
+        `${BASE_URL}/api/order/find`,
         {},
         {
           headers: {

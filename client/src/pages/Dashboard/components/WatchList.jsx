@@ -1,11 +1,19 @@
 import React, { useState, useContext } from "react";
 import { ContextApi } from "@/context/ContextApi";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
-import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget"; // Import your TradingView component
+import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget";
 
-import { Tooltip, Grow, Dialog, DialogContent, IconButton, Menu, MenuItem } from "@mui/material";
+import {
+  Tooltip,
+  Grow,
+  Dialog,
+  DialogContent,
+  IconButton,
+  Menu,
+  MenuItem,
+} from "@mui/material";
+
 import CloseIcon from "@mui/icons-material/Close";
-
 import {
   BarChartOutlined,
   KeyboardArrowDown,
@@ -13,26 +21,55 @@ import {
   MoreHoriz,
 } from "@mui/icons-material";
 
+// ========================
+// MAIN WATCHLIST COMPONENT
+// ========================
 const WatchList = () => {
   const { watchlist } = useContext(ContextApi);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter watchlist based on search term
+  const filteredWatchlist = watchlist.filter(
+    (stock) =>
+      stock.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      stock.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="watchlist-container">
+      {/* Search bar */}
       <div className="search-container">
         <input
           type="text"
           name="search"
           id="search"
-          placeholder="Search eg:infy, bse, nifty fut weekly, gold mcx"
+          placeholder="🔍 Search eg: INFY, BSE, NIFTY FUT, GOLD MCX"
           className="search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "10px 14px",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            fontSize: "14px",
+            outline: "none",
+          }}
         />
-        <span className="counts"> {watchlist.length} / 50</span>
+        <span className="counts">{filteredWatchlist.length}</span>
       </div>
 
+      {/* List rendering */}
       <ul className="list">
-        {watchlist.map((stock, index) => {
-          return <WatchListItem stock={stock} key={index} />;
-        })}
+        {filteredWatchlist.length > 0 ? (
+          filteredWatchlist.map((stock, index) => (
+            <WatchListItem stock={stock} key={index} />
+          ))
+        ) : (
+          <li style={{ textAlign: "center", padding: "10px", color: "#888" }}>
+            No results found
+          </li>
+        )}
       </ul>
     </div>
   );
@@ -40,36 +77,39 @@ const WatchList = () => {
 
 export default WatchList;
 
+// ========================
+// WATCHLIST ITEM COMPONENT
+// ========================
 const WatchListItem = ({ stock }) => {
   const [showWatchlistActions, setShowWatchlistActions] = useState(false);
 
-  const handleMouseEnter = () => {
-    setShowWatchlistActions(true);
-  };
-
-  const handleMouseLeave = () => {
-    setShowWatchlistActions(false);
-  };
-
   return (
-    <li onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      <div className="item" style={{cursor:"default"}}>
+    <li
+      onMouseEnter={() => setShowWatchlistActions(true)}
+      onMouseLeave={() => setShowWatchlistActions(false)}
+    >
+      <div className="item" style={{ cursor: "move" }}>
         <p className={stock.isDown ? "down" : "up"}>{stock.name}</p>
         <div className="itemInfo">
           <span className="percent">{stock.percent}</span>
           {stock.isDown ? (
             <KeyboardArrowDown className="down" />
           ) : (
-            <KeyboardArrowUp className="down" />
+            <KeyboardArrowUp className="up" />
           )}
           <span
             className="price"
-            style={{ color: stock.isDown ? "red" : "green", fontWeight: "600" }}
+            style={{
+              color: stock.isDown ? "red" : "green",
+              fontWeight: "600",
+            }}
           >
             {stock.price}
           </span>
         </div>
       </div>
+
+      {/* Action buttons (shown on hover) */}
       {showWatchlistActions && (
         <WatchListActions uid={stock.name} data={stock} />
       )}
@@ -77,41 +117,31 @@ const WatchListItem = ({ stock }) => {
   );
 };
 
+// ========================
+// ACTION BUTTONS COMPONENT
+// ========================
 const WatchListActions = ({ uid, data }) => {
   const { handleOpenBuyWindow } = useContext(GeneralContext);
   const [showChart, setShowChart] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
 
-  const handleBuyClick = () => {
-    handleOpenBuyWindow(uid, data);
-  };
-
-  const handleChartClick = () => {
-    setShowChart(true);
-  };
-
-  const handleCloseChart = () => {
-    setShowChart(false);
-  };
-
-  const handleMoreClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseMore = () => {
-    setAnchorEl(null);
-  };
+  const handleBuyClick = () => handleOpenBuyWindow(uid, data);
+  const handleChartClick = () => setShowChart(true);
+  const handleCloseChart = () => setShowChart(false);
+  const handleMoreClick = (event) => setAnchorEl(event.currentTarget);
+  const handleCloseMore = () => setAnchorEl(null);
 
   return (
     <>
-      <span className="actions" style={{display: "flex", gap: "6px", alignItems: "center"}}>
-        <Tooltip
-          title="Buy (B)"
-          placement="top"
-          arrow
-          onClick={handleBuyClick}
-        >
+      {/* === ACTION BUTTONS === */}
+      <span
+        className="actions"
+        style={{ display: "flex", gap: "6px", alignItems: "center" }}
+      >
+        {/* Buy */}
+        <Tooltip title="Buy (B)" placement="top" arrow>
           <button
+            onClick={handleBuyClick}
             style={{
               background: "linear-gradient(135deg, #4caf50 0%, #43a047 100%)",
               color: "#fff",
@@ -128,17 +158,15 @@ const WatchListActions = ({ uid, data }) => {
             Buy
           </button>
         </Tooltip>
-        <Tooltip
-          title="Sell (S)"
-          placement="top"
-          arrow
-          
-        >
+
+        {/* Sell */}
+        <Tooltip title="Sell (S)" placement="top" arrow>
           <button
             style={{
-              background: "linear-gradient(135deg,rgb(244, 9, 28) 0%,rgb(251, 15, 15) 100%)",
+              background:
+                "linear-gradient(135deg, rgb(244, 9, 28) 0%, rgb(251, 15, 15) 100%)",
               color: "white",
-              border: "1px #ff5722",
+              border: "1px solid rgb(251, 15, 15)",
               borderRadius: "6px",
               padding: "6px 12px",
               fontSize: "12px",
@@ -151,12 +179,9 @@ const WatchListActions = ({ uid, data }) => {
             Sell
           </button>
         </Tooltip>
-        <Tooltip
-          title="Analytics (A)"
-          placement="top"
-          arrow
-          TransitionComponent={Grow}
-        >
+
+        {/* Analytics */}
+        <Tooltip title="Analytics (A)" placement="top" arrow TransitionComponent={Grow}>
           <button
             onClick={handleChartClick}
             style={{
@@ -178,6 +203,8 @@ const WatchListActions = ({ uid, data }) => {
             <BarChartOutlined style={{ fontSize: "16px", color: "#5f6368" }} />
           </button>
         </Tooltip>
+
+        {/* More */}
         <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}>
           <button
             onClick={handleMoreClick}
@@ -202,51 +229,52 @@ const WatchListActions = ({ uid, data }) => {
         </Tooltip>
       </span>
 
+      {/* === MORE MENU === */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleCloseMore}
         anchorOrigin={{
-          vertical: 'center',
-          horizontal: 'right',
+          vertical: "center",
+          horizontal: "right",
         }}
         transformOrigin={{
-          vertical: 'center',
-          horizontal: 'left',
+          vertical: "center",
+          horizontal: "left",
         }}
         PaperProps={{
           style: {
-            minWidth: '150px',
-            maxWidth: '150px',
+            minWidth: "150px",
+            maxWidth: "150px",
           },
         }}
         MenuListProps={{
           style: {
-            padding: '2px 0',
+            padding: "2px 0",
           },
         }}
       >
-        <MenuItem 
+        <MenuItem
           onClick={handleCloseMore}
           style={{
-            fontSize: '10px',
-            padding: '6px 12px',
+            fontSize: "10px",
+            padding: "6px 12px",
           }}
         >
           View Balance Sheet
         </MenuItem>
-        <MenuItem 
+        <MenuItem
           onClick={handleCloseMore}
           style={{
-            fontSize: '10px',
-            padding: '6px 12px',
+            fontSize: "10px",
+            padding: "6px 12px",
           }}
         >
           View News
         </MenuItem>
       </Menu>
 
-      {/* Chart Dialog/Modal */}
+      {/* === CHART DIALOG === */}
       <Dialog
         open={showChart}
         onClose={handleCloseChart}
@@ -260,32 +288,32 @@ const WatchListActions = ({ uid, data }) => {
           },
         }}
       >
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center",
-          padding: "16px 24px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          backgroundColor: "#0F0F0F"
-        }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "16px 24px",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+            backgroundColor: "#0F0F0F",
+          }}
+        >
           <div>
             <span style={{ fontSize: "20px", fontWeight: "600", color: "#fff" }}>
               {data.name}
             </span>
-            <span style={{ 
-              marginLeft: "16px", 
-              fontSize: "16px", 
-              color: data.isDown ? "#f44336" : "#4caf50",
-              fontWeight: "600"
-            }}>
+            <span
+              style={{
+                marginLeft: "16px",
+                fontSize: "16px",
+                color: data.isDown ? "#f44336" : "#4caf50",
+                fontWeight: "600",
+              }}
+            >
               {data.price} ({data.percent})
             </span>
           </div>
-          <IconButton 
-            onClick={handleCloseChart} 
-            size="small"
-            style={{ color: "#fff" }}
-          >
+          <IconButton onClick={handleCloseChart} size="small" style={{ color: "#fff" }}>
             <CloseIcon />
           </IconButton>
         </div>

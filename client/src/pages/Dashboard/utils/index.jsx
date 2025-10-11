@@ -1,6 +1,9 @@
 // src/components/Payment.jsx
 import axios from "axios";
 
+
+const BASE_URL = import.meta.env.VITE_BASE_URL
+
  const openRazorpayCheckout = (order,authToken,findUserFundsData,findTransactionData) => {
   const options = {
     key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -11,7 +14,7 @@ import axios from "axios";
     order_id: order.id,
     handler: async (response) => {
       try {
-        const verifyRes = await axios.post("http://localhost:8000/api/payment/verify", response,{
+        const verifyRes = await axios.post(`${BASE_URL}/api/payment/verify`, response,{
           headers: {
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
@@ -41,7 +44,7 @@ import axios from "axios";
 };
 
 export const createOrder = async (amount, authToken, findUserFundsData,findTransactionData) => {
-  const { data } = await axios.post("http://localhost:8000/api/payment/create-order", {
+  const { data } = await axios.post(`${BASE_URL}/api/payment/create-order`, {
     amount: amount*100,
     currency: "INR",
     receipt: "receipt#1",
