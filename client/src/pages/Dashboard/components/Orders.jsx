@@ -10,6 +10,9 @@ export default function Orders() {
   const [filter, setFilter] = useState('all');
   const {getToken} = useAuth();
 
+  const BASE_URL = import.meta.env.VITE_BASE_URL
+
+
   const fetchOrderData = React.useCallback(async () => {
     setError(null);
     const authToken = await getToken();
@@ -19,7 +22,7 @@ export default function Orders() {
       setLoading(true);
       
       const response = await axios.get(
-        "http://localhost:8000/api/order/get-all-user-order",
+        `${BASE_URL}/api/order/get-all-user-order`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,

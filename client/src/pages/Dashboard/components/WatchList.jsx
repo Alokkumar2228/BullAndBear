@@ -3,7 +3,13 @@ import { ContextApi } from "@/context/ContextApi";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
 import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget"; // Import your TradingView component
 
-import { Tooltip, Grow, Dialog, DialogContent, IconButton } from "@mui/material";
+import {
+  Tooltip,
+  Grow,
+  Dialog,
+  DialogContent,
+  IconButton,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 import {
@@ -15,6 +21,14 @@ import {
 
 const WatchList = () => {
   const { watchlist } = useContext(ContextApi);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter watchlist based on search term
+  const filteredWatchlist = watchlist.filter(
+    (stock) =>
+      stock.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      stock.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="watchlist-container">
@@ -23,21 +37,36 @@ const WatchList = () => {
           type="text"
           name="search"
           id="search"
-          placeholder="Search eg:infy, bse, nifty fut weekly, gold mcx"
+          placeholder="🔍 Search eg: INFY, BSE, NIFTY FUT, GOLD MCX"
           className="search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "10px 14px",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            fontSize: "14px",
+            outline: "none",
+          }}
         />
-        <span className="counts"> {watchlist.length} / 50</span>
+        <span className="counts"> {filteredWatchlist.length}</span>
       </div>
 
       <ul className="list">
-        {watchlist.map((stock, index) => {
-          return <WatchListItem stock={stock} key={index} />;
-        })}
+        {filteredWatchlist.length > 0 ? (
+          filteredWatchlist.map((stock, index) => (
+            <WatchListItem stock={stock} key={index} />
+          ))
+        ) : (
+          <li style={{ textAlign: "center", padding: "10px", color: "#888" }}>
+            No results found
+          </li>
+        )}
       </ul>
     </div>
   );
 };
-
 export default WatchList;
 
 const WatchListItem = ({ stock }) => {
@@ -53,7 +82,7 @@ const WatchListItem = ({ stock }) => {
 
   return (
     <li onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      <div className="item" style={{cursor:"move"}}>
+      <div className="item" style={{ cursor: "move" }}>
         <p className={stock.isDown ? "down" : "up"}>{stock.name}</p>
         <div className="itemInfo">
           <span className="percent">{stock.percent}</span>
@@ -95,8 +124,8 @@ const WatchListActions = ({ uid, data }) => {
 
   return (
     <>
-      <span className="actions" >
-        <span >
+      <span className="actions">
+        <span>
           <Tooltip
             title="Buy (B)"
             placement="top"
@@ -120,15 +149,11 @@ const WatchListActions = ({ uid, data }) => {
               Buy
             </button>
           </Tooltip>
-          <Tooltip
-            title="Sell (S)"
-            placement="top"
-            arrow
-            
-          >
+          <Tooltip title="Sell (S)" placement="top" arrow>
             <button
               style={{
-                background: "linear-gradient(135deg,rgb(244, 9, 28) 0%,rgb(251, 15, 15) 100%)",
+                background:
+                  "linear-gradient(135deg,rgb(244, 9, 28) 0%,rgb(251, 15, 15) 100%)",
                 color: "white",
                 border: "1px #ff5722",
                 borderRadius: "6px",
@@ -165,10 +190,17 @@ const WatchListActions = ({ uid, data }) => {
                 transition: "all 0.2s ease-in-out",
               }}
             >
-              <BarChartOutlined style={{ fontSize: "18px", color: "#5f6368" }} />
+              <BarChartOutlined
+                style={{ fontSize: "18px", color: "#5f6368" }}
+              />
             </button>
           </Tooltip>
-          <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}>
+          <Tooltip
+            title="More"
+            placement="top"
+            arrow
+            TransitionComponent={Grow}
+          >
             <button
               style={{
                 background: "#fff",
@@ -205,29 +237,35 @@ const WatchListActions = ({ uid, data }) => {
           },
         }}
       >
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center",
-          padding: "16px 24px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          backgroundColor: "#0F0F0F"
-        }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "16px 24px",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+            backgroundColor: "#0F0F0F",
+          }}
+        >
           <div>
-            <span style={{ fontSize: "20px", fontWeight: "600", color: "#fff" }}>
+            <span
+              style={{ fontSize: "20px", fontWeight: "600", color: "#fff" }}
+            >
               {data.name}
             </span>
-            <span style={{ 
-              marginLeft: "16px", 
-              fontSize: "16px", 
-              color: data.isDown ? "#f44336" : "#4caf50",
-              fontWeight: "600"
-            }}>
+            <span
+              style={{
+                marginLeft: "16px",
+                fontSize: "16px",
+                color: data.isDown ? "#f44336" : "#4caf50",
+                fontWeight: "600",
+              }}
+            >
               {data.price} ({data.percent})
             </span>
           </div>
-          <IconButton 
-            onClick={handleCloseChart} 
+          <IconButton
+            onClick={handleCloseChart}
             size="small"
             style={{ color: "#fff" }}
           >

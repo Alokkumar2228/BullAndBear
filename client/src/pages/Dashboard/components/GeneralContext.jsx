@@ -27,12 +27,12 @@ export const GeneralContextProvider = (props) => {
     setSelectedStockData(null);
   };
 
-  
+  const BASE_URL = import.meta.env.VITE_BASE_URL
 
   const findUserFundsData = useCallback(async() =>{
     const authToken = await getToken();
     console.log(authToken);
-    const response = await axios.get("http://localhost:8000/api/user/get-user-data",{
+    const response = await axios.get(`${BASE_URL}/api/user/get-user-data`,{
       headers: {
         Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
@@ -48,7 +48,7 @@ export const GeneralContextProvider = (props) => {
 
   const findTransactionData = useCallback(async()=>{
     const authToken = await getToken();
-    const response = await axios.get("http://localhost:8000/api/payment/get-transaction-data",{
+    const response = await axios.get(`${BASE_URL}/api/payment/get-transaction-data`,{
       headers:{
         Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
@@ -69,7 +69,7 @@ export const GeneralContextProvider = (props) => {
 
   const withdrawFund = useCallback(async(data)=>{
     const authToken = await getToken();
-    const response = await axios.post("http://localhost:8000/api/payment/withdraw-order",data,{
+    const response = await axios.post(`${BASE_URL}/api/payment/withdraw-order`,data,{
       headers:{
         Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
@@ -90,7 +90,7 @@ export const GeneralContextProvider = (props) => {
       orderId : data.orderId,
     }
     console.log("selldata" , selldata);
-    const response = await axios.post("http://localhost:8000/api/order/sell-order",{selldata},{
+    const response = await axios.post(`${BASE_URL}/api/order/sell-order`,{selldata},{
       headers:{
         Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
