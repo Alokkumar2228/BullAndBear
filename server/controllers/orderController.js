@@ -149,6 +149,7 @@ export const createOrder = async (req, res) => {
 
     // ✅ Deduct balance
     user.balance = Number(user.balance) - requiredAmountInInr;
+    user.investedAmount = (user.investedAmount || 0) + requiredAmountInInr;
     await user.save({ session });
 
     // ✅ Commit transaction

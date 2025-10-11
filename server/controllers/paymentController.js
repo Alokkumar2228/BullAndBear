@@ -168,11 +168,11 @@ const capturePayment = async(req,res) =>{
 
       // Send payment success SMS
        // Send SMS notification
-       console.log("Payment contact:", payment.contact);
+      //  console.log("Payment contact:", payment.contact);
       if (payment.contact) {
         await sendPaymentSMS(payment.contact, payment.amount / 100);
       }
-      console.log("Transaction saved:", newTransaction);
+      // console.log("Transaction saved:", newTransaction);
     
     }
     else if(event === "payment.failed"){
@@ -226,7 +226,7 @@ const capturePayment = async(req,res) =>{
       await newTransaction.save();
 
       // console.log("Transaction saved:", newTransaction);
-      console.log("Payment failed via webhook:", payment);
+      // console.log("Payment failed via webhook:", payment);
     }
 
     res.status(200).json({ status: "ok" });

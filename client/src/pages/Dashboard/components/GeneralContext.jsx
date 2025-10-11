@@ -27,12 +27,13 @@ export const GeneralContextProvider = (props) => {
     setSelectedStockData(null);
   };
 
-  
+   const BASE_URL = import.meta.env.VITE_BASE_URL
+
 
   const findUserFundsData = useCallback(async() =>{
     const authToken = await getToken();
     console.log(authToken);
-    const response = await axios.get("http://localhost:8000/api/user/get-user-data",{
+    const response = await axios.get(`${BASE_URL}/api/user/get-user-data`,{
       headers: {
         Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
@@ -46,42 +47,87 @@ export const GeneralContextProvider = (props) => {
     setUserFundData(data);
   }, []);
 
-  const findTransactionData = useCallback(async()=>{
+const findTransactionData = useCallback(async () => {
+  try {
     const authToken = await getToken();
-    const response = await axios.get("http://localhost:8000/api/payment/get-transaction-data",{
-      headers:{
+    const response = await axios.get(`${BASE_URL}/api/payment/get-transaction-data`, {
+      headers: {
         Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
-      }
-    } )
+      },
+    });
     setTransactionData(response.data.transactions);
     // console.log("transaction" ,response.data);
-  }, []); 
+  } catch (error) {
+    console.error("Error fetching transaction data:", error);
+  }
+}, []);
 
-  useEffect(()=>{
-      findUserFundsData();
-      findTransactionData();
-  },[ findUserFundsData, findTransactionData])
+useEffect(() => {
+  findUserFundsData();
+  findTransactionData();
+}, [findUserFundsData, findTransactionData]);
 
-  useEffect(()=>{
-    console.log("transactionData" ,transactionData);
-  },[transactionData])
+useEffect(() => {
+  // console.log("transactionData", transactionData);
+}, [transactionData]);
 
-  const withdrawFund = useCallback(async(data)=>{
+const withdrawFund = useCallback(async (data) => {
+  try {
     const authToken = await getToken();
-    const response = await axios.post("http://localhost:8000/api/payment/withdraw-order",data,{
-      headers:{
+    const response = await axios.post(`${BASE_URL}/api/payment/withdraw-order`, data, {
+      headers: {
         Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
-      }
+      },
     });
 
     return response.data;
+  } catch (error) {
+    console.error("Error withdrawing fund:", error);
+    return { success: false, message: "Withdraw request failed." };
+  }
+}, []);
 
-  },[])
+
+// const handleSellStock = useCallback(async (data, quantity) => {
+//   try {
+//     console.log("sell data", data, quantity);
+//     const authToken = await getToken();
+//     const selldata = {
+//       symbol: data.symbol,
+//       quantity: quantity,
+//       sellPrice: data.actualPrice,
+//       orderId: data.orderId,
+//     };
+//     console.log("selldata", selldata);
+
+//     const response = await axios.post(
+//       `${BASE_URL}/api/order/sell-order`,
+//       { selldata },
+//       {
+//         headers: {
+//           Authorization: `Bearer ${authToken}`,
+//           "Content-Type": "application/json",
+//         },
+//       }
+//     );
+
+//     if (response.data.success) {
+//       console.log("Sell successful:", response.data);
+//       await findUserFundsData();
+//       await findTransactionData();
+//     }
+
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error in handleSellStock:", error);
+//     return { success: false, message: "Failed to sell stock." };
+//   }
+// }, [getToken, findUserFundsData, findTransactionData]);
 
   const handleSellStock = useCallback(async(data , quantity)=>{
-    console.log("sell data" , data , quantity);
+    // console.log("sell data" , data , quantity);
     const authToken = await getToken();
     const selldata = {
       symbol : data.symbol,
@@ -89,8 +135,8 @@ export const GeneralContextProvider = (props) => {
       sellPrice : data.actualPrice,
       orderId : data.orderId,
     }
-    console.log("selldata" , selldata);
-    const response = await axios.post("http://localhost:8000/api/order/sell-order",{selldata},{
+    // console.log("selldata" , selldata);
+    const response = await axios.post(`${BASE_URL}/api/order/sell-order`,{selldata},{
       headers:{
         Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
@@ -98,13 +144,13 @@ export const GeneralContextProvider = (props) => {
     });
 
     if(response.data.success){
-      findUserFundsData();
-      findTransactionData();
+      await findUserFundsData();
+      await findTransactionData();
     }
 
     return response.data;
 
-  },[])
+  },[getToken ,findUserFundsData, findTransactionData]);
 
   return (
     <GeneralContext.Provider value={{ handleOpenBuyWindow,transactionData, handleCloseBuyWindow ,

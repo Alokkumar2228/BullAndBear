@@ -3,7 +3,7 @@ import { ContextApi } from "@/context/ContextApi";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
 import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget"; // Import your TradingView component
 
-import { Tooltip, Grow, Dialog, DialogContent, IconButton } from "@mui/material";
+import { Tooltip, Grow, Dialog, DialogContent, IconButton, Menu, MenuItem } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 import {
@@ -53,7 +53,7 @@ const WatchListItem = ({ stock }) => {
 
   return (
     <li onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      <div className="item" style={{cursor:"move"}}>
+      <div className="item" style={{cursor:"default"}}>
         <p className={stock.isDown ? "down" : "up"}>{stock.name}</p>
         <div className="itemInfo">
           <span className="percent">{stock.percent}</span>
@@ -80,6 +80,7 @@ const WatchListItem = ({ stock }) => {
 const WatchListActions = ({ uid, data }) => {
   const { handleOpenBuyWindow } = useContext(GeneralContext);
   const [showChart, setShowChart] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const handleBuyClick = () => {
     handleOpenBuyWindow(uid, data);
@@ -93,103 +94,157 @@ const WatchListActions = ({ uid, data }) => {
     setShowChart(false);
   };
 
+  const handleMoreClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMore = () => {
+    setAnchorEl(null);
+  };
+
   return (
     <>
-      <span className="actions" >
-        <span >
-          <Tooltip
-            title="Buy (B)"
-            placement="top"
-            arrow
-            onClick={handleBuyClick}
+      <span className="actions" style={{display: "flex", gap: "6px", alignItems: "center"}}>
+        <Tooltip
+          title="Buy (B)"
+          placement="top"
+          arrow
+          onClick={handleBuyClick}
+        >
+          <button
+            style={{
+              background: "linear-gradient(135deg, #4caf50 0%, #43a047 100%)",
+              color: "#fff",
+              border: "1px solid #43a047",
+              borderRadius: "6px",
+              padding: "6px 12px",
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 2px 6px rgba(76, 175, 80, 0.3)",
+              transition: "all 0.2s ease-in-out",
+            }}
           >
-            <button
-              style={{
-                background: "linear-gradient(135deg, #4caf50 0%, #43a047 100%)",
-                color: "#fff",
-                border: "1px solid #43a047",
-                borderRadius: "6px",
-                padding: "8px 16px",
-                fontSize: "14px",
-                fontWeight: "600",
-                cursor: "pointer",
-                boxShadow: "0 2px 6px rgba(76, 175, 80, 0.3)",
-                transition: "all 0.2s ease-in-out",
-              }}
-            >
-              Buy
-            </button>
-          </Tooltip>
-          <Tooltip
-            title="Sell (S)"
-            placement="top"
-            arrow
-            
+            Buy
+          </button>
+        </Tooltip>
+        <Tooltip
+          title="Sell (S)"
+          placement="top"
+          arrow
+          
+        >
+          <button
+            style={{
+              background: "linear-gradient(135deg,rgb(244, 9, 28) 0%,rgb(251, 15, 15) 100%)",
+              color: "white",
+              border: "1px #ff5722",
+              borderRadius: "6px",
+              padding: "6px 12px",
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 2px 6px rgba(255, 87, 34, 0.3)",
+              transition: "all 0.2s ease-in-out",
+            }}
           >
-            <button
-              style={{
-                background: "linear-gradient(135deg,rgb(244, 9, 28) 0%,rgb(251, 15, 15) 100%)",
-                color: "white",
-                border: "1px #ff5722",
-                borderRadius: "6px",
-                padding: "8px 16px",
-                fontSize: "14px",
-                fontWeight: "600",
-                cursor: "pointer",
-                boxShadow: "0 2px 6px rgba(255, 87, 34, 0.3)",
-                transition: "all 0.2s ease-in-out",
-              }}
-            >
-              Sell
-            </button>
-          </Tooltip>
-          <Tooltip
-            title="Analytics (A)"
-            placement="top"
-            arrow
-            TransitionComponent={Grow}
+            Sell
+          </button>
+        </Tooltip>
+        <Tooltip
+          title="Analytics (A)"
+          placement="top"
+          arrow
+          TransitionComponent={Grow}
+        >
+          <button
+            onClick={handleChartClick}
+            style={{
+              background: "#fff",
+              color: "#5f6368",
+              border: "1.5px solid #dadce0",
+              borderRadius: "6px",
+              padding: "6px",
+              minWidth: "32px",
+              height: "32px",
+              cursor: "pointer",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+              transition: "all 0.2s ease-in-out",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <button
-              onClick={handleChartClick}
-              style={{
-                background: "#fff",
-                color: "#5f6368",
-                border: "1.5px solid #dadce0",
-                borderRadius: "6px",
-                padding: "6px",
-                minWidth: "36px",
-                height: "36px",
-                marginTop: "5px",
-                cursor: "pointer",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                transition: "all 0.2s ease-in-out",
-              }}
-            >
-              <BarChartOutlined style={{ fontSize: "18px", color: "#5f6368" }} />
-            </button>
-          </Tooltip>
-          <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}>
-            <button
-              style={{
-                background: "#fff",
-                color: "#5f6368",
-                border: "1.5px solid #dadce0",
-                borderRadius: "6px",
-                padding: "6px",
-                minWidth: "36px",
-                height: "36px",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                transition: "all 0.2s ease-in-out",
-              }}
-            >
-              <MoreHoriz style={{ fontSize: "18px", color: "#5f6368" }} />
-            </button>
-          </Tooltip>
-        </span>
+            <BarChartOutlined style={{ fontSize: "16px", color: "#5f6368" }} />
+          </button>
+        </Tooltip>
+        <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}>
+          <button
+            onClick={handleMoreClick}
+            style={{
+              background: "#fff",
+              color: "#5f6368",
+              border: "1.5px solid #dadce0",
+              borderRadius: "6px",
+              padding: "6px",
+              minWidth: "32px",
+              height: "32px",
+              cursor: "pointer",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+              transition: "all 0.2s ease-in-out",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <MoreHoriz style={{ fontSize: "16px", color: "#5f6368" }} />
+          </button>
+        </Tooltip>
       </span>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMore}
+        anchorOrigin={{
+          vertical: 'center',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'center',
+          horizontal: 'left',
+        }}
+        PaperProps={{
+          style: {
+            minWidth: '150px',
+            maxWidth: '150px',
+          },
+        }}
+        MenuListProps={{
+          style: {
+            padding: '2px 0',
+          },
+        }}
+      >
+        <MenuItem 
+          onClick={handleCloseMore}
+          style={{
+            fontSize: '10px',
+            padding: '6px 12px',
+          }}
+        >
+          View Balance Sheet
+        </MenuItem>
+        <MenuItem 
+          onClick={handleCloseMore}
+          style={{
+            fontSize: '10px',
+            padding: '6px 12px',
+          }}
+        >
+          View News
+        </MenuItem>
+      </Menu>
 
       {/* Chart Dialog/Modal */}
       <Dialog

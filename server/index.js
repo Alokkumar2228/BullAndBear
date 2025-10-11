@@ -10,6 +10,7 @@ import authRouter from "./routes/authRoutes.js";
 import client from "./utils/redisclient.js";
 import paymentRouter from "./routes/paymentRoutes.js";
 import userRouter from "./routes/userRoutes.js";
+import financialRouter from "./routes/financialRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -23,109 +24,15 @@ app.use(cors());
 connectDB();
 
 // Stock symbols
-const symbols = [
-  "AAPL",
-  "MSFT",
-  "GOOGL",
-  "AMZN",
-  "META",
-  "TSLA",
-  "NVDA",
-  "NFLX",
-  "ADBE",
-  "ORCL",
-  "INTC",
-  "AMD",
-  "IBM",
-  "CSCO",
-  "QCOM",
-  "SAP",
-  "CRM",
-  "NOW",
-  "SNOW",
-  "PLTR",
-  "V",
-  "MA",
-  "PYPL",
-  "SQ",
-  "AXP",
-  "COIN",
-  "INTU",
-  "FIS",
-  "FISV",
-  "GPN",
-  "SHOP",
-  "MELI",
-  "WMT",
-  "COST",
-  "TGT",
-  "BABA",
-  "JD",
-  "PDD",
-  "EBAY",
-  "ETSY",
-  "UBER",
-  "LYFT",
-  "DAL",
-  "UAL",
-  "AAL",
-  "BA",
-  "RCL",
-  "CCL",
-  "MAR",
-  "ABNB",
-  "NKE",
-  "MCD",
-  "SBUX",
-  "KO",
-  "PEP",
-  "PG",
-  "UL",
-  "CL",
-  "KMB",
-  "GIS",
-  "XOM",
-  "CVX",
-  "BP",
-  "SHEL",
-  "COP",
-  "DUK",
-  "NEE",
-  "SO",
-  "ENPH",
-  "FSLR",
-  "JPM",
-  "GS",
-  "MS",
-  "BAC",
-  "WFC",
-  "C",
-  "BLK",
-  "SCHW",
-  "TROW",
-  "SPGI",
-  "PFE",
-  "JNJ",
-  "MRK",
-  "ABBV",
-  "LLY",
-  "UNH",
-  "BMY",
-  "AMGN",
-  "GILD",
-  "CVS",
-  "DIS",
-  "PARA",
-  "ROKU",
-  "WBD",
-  "SONY",
-  "TTWO",
-  "EA",
-  "MTCH",
-  "SPOT",
-  "ZM",
-];
-
+const symbols = [   "AAPL",   "MSFT",   "GOOGL",   "AMZN",   "META",   "TSLA",   "NVDA", 
+    "NFLX",   "ADBE", "ORCL",   "INTC",   "AMD",   "IBM",   "CSCO",   "QCOM",   "SAP",  
+    "CRM",   "NOW",   "SNOW",   "PLTR",   "V",   "MA",   "PYPL",   "SQ",   "AXP",   "COIN",  
+    "INTU",   "FIS",   "FISV",   "GPN",   "SHOP",   "MELI",   "WMT",   "COST",   "TGT",   "BABA", 
+      "JD",   "PDD",   "EBAY",   "ETSY",   "UBER",   "LYFT",   "DAL",   "UAL",   "AAL",   "BA",  
+      "RCL",   "CCL",   "MAR",   "ABNB",   "NKE",   "MCD",   "SBUX",   "KO",   "PEP",   "PG",   "UL", 
+      "CL",   "KMB",   "GIS",   "XOM",   "CVX",   "BP",   "SHEL",   "COP",   "DUK",   "NEE",   "SO", 
+      "ENPH",   "FSLR",   "JPM",   "GS",   "MS",   "BAC",   "WFC",   "C",   "BLK",   "SCHW",   "TROW", 
+     "SPGI",   "PFE",  "JNJ",   "MRK",   "ABBV",   "LLY",   "UNH",   "BMY",   "AMGN",   "GILD",   "CVS",   "DIS",   "PARA",   "ROKU",   "WBD",   "SONY",   "TTWO",   "EA",   "MTCH",   "SPOT",   "ZM", ];
 // ✅ Stocks route
 app.get("/api/stocks", async (req, res) => {
   try {
@@ -210,6 +117,8 @@ app.use("/webhook", express.raw({ type: "application/json" }), authRouter);
 app.use("/api/order", OrderRouter);
 //
 app.use("/api/user", userRouter);
+
+app.use("/api/financial", financialRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

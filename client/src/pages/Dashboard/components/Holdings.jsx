@@ -13,7 +13,7 @@ const Holdings = () => {
   const [error, setError] = useState(null);
   const [isSelling, setIsSelling] = useState(false);
   const { getToken } = useAuth();
-  const { handleSellStock } = useContext(GeneralContext);
+  const { handleSellStock , findUserFundsData} = useContext(GeneralContext);
   // const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
 
 
@@ -72,8 +72,10 @@ const Holdings = () => {
     setIsSelling(true);
     try {
       const res = await handleSellStock(stock, qty);
+      // console.log("Sell response:", res);
       if (res?.success) {
         await fetchHoldings();
+        await await findUserFundsData();
         setIsSell(false);
       } else {
         console.error("Sell failed:", res?.message);
