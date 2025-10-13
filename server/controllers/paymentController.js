@@ -63,7 +63,7 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid signature" });
     }
 
-    // ✅ Payment verified
+    
     const userId = req.user.id;
 
     // Step 2: Fetch payment details from Razorpay (for actual amount)
@@ -78,25 +78,10 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment not captured" });
     }
 
-    const amountPaid = payment.amount / 100; // paise → rupees
-
-    // Step 3: Update user balance
-    const user = await User.findOne({ user_id: userId });
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found. If any amount deducted it will be refunded in 2-3 business days",
-      });
-    }
-
-    user.balance += amountPaid;
-    await user.save();
-
     // Step 4: Respond success
     res.json({
       success: true,
       message: "Payment verified successfully",
-      amount: amountPaid,
-      newBalance: user.balance,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
@@ -118,7 +103,7 @@ const capturePayment = async(req,res) =>{
 
     if (event === "payment.captured") {
       const payment = req.body.payload.payment.entity;
-      console.log(payment);
+       
       const authToken = payment.notes.auth_token;
        // Decode Token
       const publicKey = process.env.CLERK_PEM_PUBLIC_KEY;
@@ -148,7 +133,7 @@ const capturePayment = async(req,res) =>{
 
       const userId = decoded.sub;
 
-      // console.log("UserId",userId);
+      console.log("UserId",userId);
 
       const user = await User.findOne({ user_id: userId });
       if (!user) {
@@ -159,7 +144,7 @@ const capturePayment = async(req,res) =>{
       user.balance += payment.amount / 100;
       user.transactionStatus = "paid";
       await user.save();
-      // console.log("Payment captured via webhook:", payment);
+      
 
       // Extract user + transaction details
       const transactionData = {
@@ -174,24 +159,23 @@ const capturePayment = async(req,res) =>{
         contact: payment.contact,
         notes: payment.notes,
         createdAt: new Date(payment.created_at * 1000),
+        mode:"credit"
       };
 
       // Save to DB
       const newTransaction = new Transaction(transactionData);
       await newTransaction.save();
 
-      // Send payment success SMS
-       // Send SMS notification
-       console.log("Payment contact:", payment.contact);
+ 
       if (payment.contact) {
         await sendPaymentSMS(payment.contact, payment.amount / 100);
       }
-      // console.log("Transaction saved:", newTransaction);
+    
     
     }
     else if(event === "payment.failed"){
       const payment = req.body.payload.payment.entity;
-      // console.log(payment);
+      
       const authToken = payment.notes.auth_token;
        // Decode Token
       const publicKey = process.env.CLERK_PEM_PUBLIC_KEY;
@@ -231,16 +215,15 @@ const capturePayment = async(req,res) =>{
         status: payment.status, // "captured"
         email: payment.email,
         contact: payment.contact,
-        notes: payment.notes,
         createdAt: new Date(payment.created_at * 1000),
+        mode: "Credit"
       };
 
       // Save to DB
       const newTransaction = new Transaction(transactionData);
       await newTransaction.save();
 
-      // console.log("Transaction saved:", newTransaction);
-      console.log("Payment failed via webhook:", payment);
+  
     }
 
     res.status(200).json({ status: "ok" });
@@ -249,7 +232,64 @@ const capturePayment = async(req,res) =>{
   }
 }
 
+const getTransactionData = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-export {createOrder,verifyPayment,capturePayment}
+    const transactions = await Transaction.find(
+      { user_id: userId },
+      {
+        transaction_id: 1,
+        amount: 1,
+        status: 1,
+        type: 1,
+        createdAt: 1,
+        mode: 1,
+      }
+    )
+      .sort({ createdAt: -1 }); // 👈 Sort by date descending (newest first)
+
+    res.status(200).json({ success: true, transactions });
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const withdrawOrder = async(req,res) =>{
+  const {account_number,ifsc,amount} = req.body;
+  const userId  = req.user.id;
+  const user = await User.findOne({user_id: userId});
+  if(!user){
+    return res.status(404).json({success:false,message:"User not found"});
+  }
+  if(user.balance < amount){
+    return res.status(400).json({success:false,message:"Insufficient balance"});
+  }
+  user.balance -= amount;
+  user.withdrawAmount += amount;
+  await user.save();
+
+  const newTransaction = new Transaction({
+    user_id: userId,
+    transaction_id: `rz_${Date.now()}`,
+    type: "withdrawal",
+    amount: amount,
+    currency: "INR",
+    status: "processed",
+    notes: {account_number,ifsc},
+    createdAt: new Date(),
+    mode:"debit"
+  });
+  await newTransaction.save();
+  res.status(200).json({success:true,message:"Withdrawal processed",transaction:newTransaction});
+
+}
+
+
+
+
+
+export {createOrder,verifyPayment,capturePayment,getTransactionData,withdrawOrder};
 
 

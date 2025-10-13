@@ -8,6 +8,7 @@ import Positions from '@/pages/Dashboard/components/Positions';
 import Summary from '@/pages/Dashboard/components/Summary';
 import WatchList from '@/pages/Dashboard/components/WatchList';
 import {GeneralContextProvider} from '@/pages/Dashboard/components/GeneralContext';
+import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget";
 // import WatchList from "./WatchList";
 
 
@@ -27,6 +28,7 @@ const Dashboard = ({user}) => {
           <Route path="/positions" element={<Positions />} />
           <Route path="/funds" element={<Funds />} />
           {/* <Route path="/apps" element={<Apps />} /> */}
+          <Route path = "/chart" element ={<TradingViewWidget/>}/>
         </Routes>
         
       </div>

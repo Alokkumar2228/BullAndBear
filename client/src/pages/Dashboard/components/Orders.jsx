@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 
-
-
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,17 +10,19 @@ export default function Orders() {
   const [filter, setFilter] = useState('all');
   const {getToken} = useAuth();
 
+  const BASE_URL = import.meta.env.VITE_BASE_URL
+
+
   const fetchOrderData = React.useCallback(async () => {
     setError(null);
     const authToken = await getToken();
+    // console.log("authToken:", authToken);
     
     try {
       setLoading(true);
       
-      // Fetch all orders first
-      const response = await axios.post(
-        "http://localhost:8000/api/order/find",
-        {},
+      const response = await axios.get(
+        `${BASE_URL}/api/order/get-all-user-order`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -31,23 +31,16 @@ export default function Orders() {
         }
       );
 
-      // Filter orders on client side based on selected filter
-
       
-      console.log('Current filter:', filter);
-      console.log('All orders:', response.data);
       
-      // Single state update with filtered results
-      if (filter !== 'all' && response.data) {
-        const filteredOrders = response.data.filter(order => {
-          console.log('Checking order:', order);
+      if (filter !== 'all' && response.data.orders) {
+        const filteredOrders = response.data.orders.filter(order => {
           return order.orderType === filter;
-        });
-        console.log('Filtered orders:', filteredOrders);
+        });    
         setOrders(filteredOrders);
       } else {
-        console.log('Setting all orders');
-        setOrders(response.data || []);
+        // console.log('Setting all orders');
+        setOrders(response.data.orders || []);
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch orders';
@@ -60,8 +53,7 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrderData();
-  }, [fetchOrderData]); // Adding filter as dependency since we want to refetch when filter changes
-
+  }, [fetchOrderData]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -72,22 +64,14 @@ export default function Orders() {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
-  };
-
-
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'EXECUTED': return '#28a745';
-      case 'PENDING': return '#ffc107';
-      case 'CANCELLED': return '#dc3545';
-      default: return '#6c757d';
-    }
   };
 
   const getOrderTypeColor = (orderType) => {
@@ -99,19 +83,23 @@ export default function Orders() {
     }
   };
 
+  const getModeColor = (mode) => {
+    return mode === 'BUY' ? '#28a745' : '#dc3545';
+  };
+
   if (loading) {
     return (
       <div style={styles.container}>
         <div style={styles.loadingContainer}>
           <div style={styles.loadingSpinner}></div>
-          <div style={styles.loadingText}>Loading your portfolio...</div>
+          <div style={styles.loadingText}>Loading your orders...</div>
         </div>
       </div>
     );
   }
 
   return (
-       <div style={styles.container}>
+    <div style={styles.container}>
       {error && (
         <div style={styles.errorMessage}>
           {error}
@@ -120,7 +108,7 @@ export default function Orders() {
               setError(null);
               fetchOrderData();
             }}
-            style={{ marginLeft: '10px', textDecoration: 'underline' }}
+            style={styles.errorButton}
           >
             Try Again
           </button>
@@ -129,7 +117,7 @@ export default function Orders() {
      
       <div style={styles.header}>
         <div>
-          <h1 style={styles.title}>Portfolio Orders</h1>
+          <h1 style={styles.title}>My Orders</h1>
           <p style={styles.subtitle}>Track and manage your stock orders</p>
         </div>
         <div style={styles.headerActions}>
@@ -137,7 +125,7 @@ export default function Orders() {
             style={styles.filterSelect} 
             value={filter} 
             onChange={(e) => {
-              console.log('Filter changed to:', e.target.value);
+              // console.log('Filter changed to:', e.target.value);
               setFilter(e.target.value);
             }}
           >
@@ -152,70 +140,68 @@ export default function Orders() {
         </div>
       </div>
 
-   
-
-      
-      <div style={styles.tableContainer}>
-        <div style={styles.tableHeader}>
-          <h2 style={styles.tableTitle}>Recent Orders</h2>
-        </div>
-        
+      <div style={styles.ordersBox}>
         {orders.length === 0 ? (
-          <div style={{ padding: '32px', textAlign: 'center', color: '#6c757d' }}>
-            <div style={{ fontSize: '16px', marginBottom: '12px' }}>
+          <div style={styles.emptyState}>
+            <div style={styles.emptyText}>
               {filter !== 'all' ? 'No orders match this filter.' : "You haven't placed any orders yet."}
             </div>
             {filter !== 'all' ? (
               <button
-                style={styles.refreshButton}
+                style={styles.clearButton}
                 onClick={() => setFilter('all')}
               >
                 Clear filter
               </button>
             ) : (
-              <Link to={"/"} className="btn">Get started</Link>
+              <Link to={"/"} style={styles.getStartedButton}>Get started</Link>
             )}
           </div>
         ) : (
-          <div style={styles.table}>
-            <div style={styles.tableHeaderRow}>
-              <div style={{...styles.headerCell, ...styles.stockColumn}}>Stock</div>
-              <div style={{...styles.headerCell, ...styles.quantityColumn}}>Quantity</div>
-              <div style={{...styles.headerCell, ...styles.dateColumn}}>Date</div>
-              <div style={{...styles.headerCell, ...styles.orderTypeColumn}}>Order Type</div>
-              <div style={{...styles.headerCell, ...styles.priceColumn}}>Price</div>
-              <div style={{...styles.headerCell, ...styles.totalColumn}}>Total Value</div>
-              <div style={{...styles.headerCell, ...styles.statusColumn}}>Status</div>
-            </div>
-
-            {orders.map((order, index) => (
-              <div key={order.id} style={{...styles.tableRow, backgroundColor: index % 2 === 0 ? '#fafafa' : 'white'}}>
-                <div style={{...styles.cell, ...styles.stockColumn}}>
-                  <div style={styles.stockInfo}>
-                    <div style={styles.stockName}>{order.symbol}</div>
+          <div style={styles.ordersList}>
+            {orders.map((order) => (
+              <div key={order.id} style={styles.orderCard}>
+                <div style={styles.orderHeader}>
+                  <div style={styles.orderHeaderLeft}>
+                    <h3 style={styles.stockSymbol}>{order.symbol}</h3>
+                    <span style={styles.stockName}>{order.name}</span>
+                  </div>
+                  <div style={styles.orderHeaderRight}>
+                    <span style={{...styles.modeBadge, color: getModeColor(order.mode)}}>
+                      {order.mode}
+                    </span>
                   </div>
                 </div>
-                <div style={{...styles.cell, ...styles.quantityColumn}}>
-                  <span style={styles.quantity}>{order.quantity.toLocaleString()}</span>
-                </div>
-                <div style={{...styles.cell, ...styles.dateColumn}}>
-                  <span style={styles.date}>{formatDate(order.placedAt)}</span>
-                </div>
-                <div style={{...styles.cell, ...styles.orderTypeColumn}}>
-                  <span style={{...styles.orderTypeBadge, backgroundColor: getOrderTypeColor(order.orderType) + '15', color: getOrderTypeColor(order.orderType)}}>
-                    {order.orderType || 'DELIVERY'}
-                  </span>
-                </div>
-                <div style={{...styles.cell, ...styles.priceColumn}}>
-                  <span style={styles.price}>{formatCurrency(order.purchasePrice)}</span>
-                </div>
-                <div style={{...styles.cell, ...styles.totalColumn}}>
-                  <span style={styles.total}>{formatCurrency(order.totalAmount)}</span>
-                </div>
-                <div style={{...styles.cell, ...styles.statusColumn}}>
-                  <span style={{...styles.statusBadge, backgroundColor: getStatusColor(order.status) + '15', color: getStatusColor(order.status)}}>
-                    {order.status || 'EXECUTED'}
-                  </span>
+
+                <div style={styles.orderDetails}>
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>Type:</span>
+                    <span style={{...styles.orderTypeBadge, color: getOrderTypeColor(order.orderType)}}>
+                      {order.orderType}
+                    </span>
+                  </div>
+
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>Quantity:</span>
+                    <span style={styles.detailValue}>{order.quantity.toLocaleString()}</span>
+                  </div>
+
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>Date:</span>
+                    <span style={styles.detailValue}>{formatDate(order.executedAt)}</span>
+                  </div>
+
+                  <div style={styles.detailRow}>
+                    <span style={styles.detailLabel}>Purchase Price:</span>
+                    <span style={styles.detailValue}>{formatCurrency(order.purchasePrice)}</span>
+                  </div>
+
+                  {order.mode === 'SELL' && order.sellPrice !== null && order.sellPrice !== undefined && (
+                    <div style={styles.detailRow}>
+                      <span style={styles.detailLabel}>Sell Price:</span>
+                      <span style={styles.detailValue}>{formatCurrency(order.sellPrice)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -229,196 +215,207 @@ export default function Orders() {
 const styles = {
   container: {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
     minHeight: '100vh',
     padding: '24px',
-    color: '#212529'
+    color: '#000000'
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '32px'
+    marginBottom: '32px',
+    paddingBottom: '16px',
+    borderBottom: '1px solid #e0e0e0',
+    flexWrap: 'wrap',
+    gap: '16px'
   },
   title: {
     fontSize: '32px',
     fontWeight: '700',
     margin: '0 0 8px 0',
-    color: '#212529'
+    color: '#000000'
   },
   subtitle: {
     fontSize: '16px',
-    color: '#6c757d',
+    color: '#666666',
     margin: 0
   },
   headerActions: {
     display: 'flex',
-    gap: '12px'
+    gap: '12px',
+    alignItems: 'center',
+    flexWrap: 'wrap'
   },
   refreshButton: {
     padding: '10px 20px',
-    backgroundColor: 'white',
-    color: '#495057',
+    backgroundColor: '#000000',
+    color: '#ffffff',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
-    borderRadius: '8px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    borderRadius: '6px',
+    border: 'none',
     transition: 'all 0.2s ease'
   },
   filterSelect: {
     padding: '10px 20px',
-    backgroundColor: 'white',
-    color: '#495057',
+    backgroundColor: '#ffffff',
+    color: '#000000',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
-    borderRadius: '8px',
-    border: '1px solid #dee2e6',
-    outline: 'none',
-    marginRight: '10px'
+    borderRadius: '6px',
+    border: '1px solid #000000',
+    outline: 'none'
   },
   errorMessage: {
     color: '#dc3545',
-    backgroundColor: '#f8d7da',
+    backgroundColor: '#ffe6e6',
     padding: '12px 20px',
-    borderRadius: '8px',
+    borderRadius: '6px',
     marginBottom: '20px',
     fontSize: '14px',
-    textAlign: 'center'
+    textAlign: 'center',
+    border: '1px solid #dc3545'
   },
-  statsContainer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '24px',
-    marginBottom: '40px'
+  errorButton: {
+    marginLeft: '10px',
+    textDecoration: 'underline',
+    background: 'none',
+    border: 'none',
+    color: '#dc3545',
+    cursor: 'pointer',
+    fontWeight: '600'
   },
-  statCard: {
-    backgroundColor: 'white',
+  ordersBox: {
+    backgroundColor: '#ffffff',
     padding: '24px',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    minHeight: '400px'
   },
-  statValue: {
-    fontSize: '28px',
-    fontWeight: '700',
-    color: '#212529',
-    marginBottom: '8px'
-  },
-  statLabel: {
-    fontSize: '14px',
-    color: '#6c757d',
-    marginBottom: '4px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
-  },
-  statChange: {
-    fontSize: '14px',
-    color: '#28a745',
-    fontWeight: '500'
-  },
-  tableContainer: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    overflow: 'hidden'
-  },
-  tableHeader: {
-    padding: '24px 24px 0 24px'
-  },
-  tableTitle: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#212529',
-    margin: '0 0 24px 0'
-  },
-  table: {
-    width: '100%'
-  },
-  tableHeaderRow: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr 1fr',
-    padding: '16px 24px',
-    backgroundColor: '#f8f9fa'
-  },
-  headerCell: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#495057',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
-  },
-  tableRow: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr 1fr',
-    padding: '20px 24px',
-    alignItems: 'center',
-    transition: 'background-color 0.2s ease'
-  },
-  cell: {
-    fontSize: '14px',
-    color: '#212529'
-  },
-  stockColumn: { justifySelf: 'start' },
-  quantityColumn: { justifySelf: 'center' },
-  dateColumn: { justifySelf: 'center' },
-  orderTypeColumn: { justifySelf: 'center' },
-  priceColumn: { justifySelf: 'end' },
-  totalColumn: { justifySelf: 'end' },
-  statusColumn: { justifySelf: 'center' },
-  orderTypeBadge: {
-    padding: '4px 10px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '500'
-  },
-  stockInfo: {
+  ordersList: {
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    gap: '16px'
+  },
+  orderCard: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: '6px',
+    padding: '20px',
+    transition: 'all 0.2s ease'
+  },
+  orderHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '16px',
+    paddingBottom: '12px',
+    borderBottom: '1px solid #e0e0e0'
+  },
+  orderHeaderLeft: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
+  orderHeaderRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px'
+  },
+  stockSymbol: {
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#000000',
+    margin: 0
   },
   stockName: {
     fontSize: '14px',
-    fontWeight: '600',
-    color: '#212529',
-    marginBottom: '2px'
-  },
-  ticker: {
-    fontSize: '12px',
-    color: '#6c757d',
-    fontWeight: '500'
-  },
-  quantity: {
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  date: {
-    fontSize: '14px',
-    color: '#495057'
+    color: '#666666',
+    fontWeight: '400'
   },
   modeBadge: {
-    padding: '4px 10px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '500'
+    fontSize: '18px',
+    fontWeight: '700',
+    padding: '6px 16px',
+    borderRadius: '4px',
+    backgroundColor: '#ffffff',
+    border: '2px solid currentColor'
   },
-  price: {
-    fontSize: '14px',
-    fontWeight: '500'
+  orderDetails: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '16px',
+    rowGap: '12px'
   },
-  total: {
+  detailRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flex: '1 1 auto',
+    minWidth: '200px'
+  },
+  detailLabel: {
     fontSize: '14px',
+    color: '#666666',
+    fontWeight: '500',
+    whiteSpace: 'nowrap',
+    marginRight: '8px'
+  },
+  detailValue: {
+    fontSize: '14px',
+    color: '#000000',
     fontWeight: '600',
-    color: '#212529'
+    whiteSpace: 'nowrap'
+  },
+  orderTypeBadge: {
+    fontSize: '14px',
+    fontWeight: '700',
+    padding: '4px 12px',
+    borderRadius: '4px',
+    backgroundColor: '#ffffff',
+    border: '1px solid currentColor'
   },
   statusBadge: {
-    padding: '4px 10px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '500'
-  },
-  growth: {
     fontSize: '14px',
-    fontWeight: '600'
+    fontWeight: '700',
+    padding: '4px 12px',
+    borderRadius: '4px',
+    backgroundColor: '#ffffff',
+    border: '1px solid currentColor'
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '300px',
+    gap: '16px'
+  },
+  emptyText: {
+    fontSize: '16px',
+    color: '#666666',
+    textAlign: 'center'
+  },
+  clearButton: {
+    padding: '10px 24px',
+    backgroundColor: '#000000',
+    color: '#ffffff',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    borderRadius: '6px',
+    border: 'none'
+  },
+  getStartedButton: {
+    padding: '10px 24px',
+    backgroundColor: '#000000',
+    color: '#ffffff',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    borderRadius: '6px',
+    textDecoration: 'none',
+    display: 'inline-block'
   },
   loadingContainer: {
     display: 'flex',
@@ -431,18 +428,17 @@ const styles = {
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    border: '3px solid #f3f3f3',
-    borderTop: '3px solid #007bff',
+    border: '3px solid #e0e0e0',
+    borderTop: '3px solid #000000',
     animation: 'spin 1s linear infinite',
     marginBottom: '16px'
   },
   loadingText: {
     fontSize: '16px',
-    color: '#6c757d'
+    color: '#666666'
   }
 };
 
-// Add CSS animation for loading spinner
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `
@@ -450,14 +446,6 @@ if (typeof document !== 'undefined') {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
-    .table-row:hover {
-      background-color: #f1f3f4 !important;
-    }
   `;
   document.head.appendChild(style);
 }
-
-
-
-

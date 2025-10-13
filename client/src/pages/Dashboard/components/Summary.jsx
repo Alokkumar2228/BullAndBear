@@ -1,61 +1,64 @@
 import React from "react";
 import axios from "axios";
-import { useState , useEffect} from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import './dashboard.css'
+import "./dashboard.css";
 
+
+const BASE_URL = import.meta.env.VITE_BASE_URL
 const Summary = () => {
-
   const user = localStorage.getItem("user_name");
 
   const [allHoldings, setAllHoldings] = useState([]);
 
-  const {getToken} = useAuth();
-
+  const { getToken } = useAuth();
 
   const findOrder = async () => {
-  try {
-    const authToken = await getToken();
-    const response = await axios.post(
-      "http://localhost:8000/api/order/find",{},
-      {
-        headers: {
-         Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
+    try {
+      const authToken = await getToken();
+      const response = await axios.post(
+        `${BASE_URL}/api/order/find`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
         }
-      }
+      );
+     
+      setAllHoldings(response.data);
+    } catch (error) {
+      console.error(
+        "Error creating order:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  useEffect(() => {
+    findOrder();
+  }, []);
+
+  const calInvestment = () => {
+    let sum = 0;
+    allHoldings.forEach((stock) => {
+      sum += stock.totalAmount || 0;
+    });
+    return sum;
+  };
+
+  const calActualValue = () => {
+    let currVal = 0;
+    allHoldings.forEach(
+      (stock) => (currVal += stock.quantity * stock.actualPrice)
     );
-    console.log("Order created successfully:", response.data);
-    setAllHoldings(response.data);
-  } catch (error) {
-    console.error("Error creating order:", error.response?.data || error.message);
-  }
-};
+    return currVal.toFixed(2);
+  };
 
-useEffect(()=>{
-  findOrder();
-},[])
+  const profit = (calActualValue() - calInvestment()).toFixed(2);
+  const profitPercentage = ((profit / calInvestment()) * 100).toFixed(2);
 
-
-const calInvestment = () => {
-  let sum = 0;
-  allHoldings.forEach(stock => {
-    sum += stock.totalAmount || 0;
-  });
-  return sum;
-};
-
-const calActualValue = () => {
-  let currVal = 0;
-  allHoldings.forEach(stock => currVal += stock.quantity * stock.actualPrice);
-  return currVal.toFixed(2);
-}
-
-const profit = (calActualValue() - calInvestment()).toFixed(2);
-const profitPercentage = ((profit / calInvestment()) * 100).toFixed(2);
-
-
-  
   return (
     <>
       <div className="username">
@@ -94,9 +97,16 @@ const profitPercentage = ((profit / calInvestment()) * 100).toFixed(2);
 
         <div className="data">
           <div className="first">
-            <h3 className="profit" style={{ color: profit > 0 ? "green" : "red" }} >
-              ${profit}<small style={{ color: profit > 0 ? "green" : "red" }} >{profitPercentage}%</small>{" "}
+            <h3
+              className="profit"
+              style={{ color: Number(profit) > 0 ? "green" : "red" }}
+            >
+              ${Number(profit).toFixed(2)}{" "}
+              <small style={{ color: Number(profit) > 0 ? "green" : "red" }}>
+                ({Number(profitPercentage).toFixed(2)}%)
+              </small>
             </h3>
+
             <p>P&L</p>
           </div>
           <hr />

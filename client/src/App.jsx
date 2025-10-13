@@ -8,31 +8,48 @@ import AboutPage from './pages/About'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Auth from './pages/Auth/Auth'
-import DashboardLayout from './pages/Dashboard'                   
+import DashboardLayout from './pages/Dashboard'
 import RouteGuard from './components/RouteGuard'
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   const location = useLocation();
+
   return (
     <>
-    { location.pathname !== '/dashboard' &&  location.pathname !== '/dashboard/orders'
-     && location.pathname !== '/dashboard/holdings' && location.pathname !== '/dashboard/positions' 
-      && location.pathname !== '/dashboard/funds' && location.pathname !== '/dashboard/apps' && <Navbar /> }
-      
+      {location.pathname !== '/dashboard' &&
+        location.pathname !== '/dashboard/orders' &&
+        location.pathname !== '/dashboard/holdings' &&
+        location.pathname !== '/dashboard/positions' &&
+        location.pathname !== '/dashboard/funds' &&
+        location.pathname !== '/dashboard/apps' && <Navbar />}
+
       <Routes>
-        <Route path='/'  element = {<HomePage />}  />
+        <Route path='/' element={<HomePage />} />
         <Route path='/products' element={<ProductPage />} />
         <Route path='/support' element={<SupportPage />} />
         <Route path='/pricing' element={<PricingPage />} />
         <Route path='/about' element={<AboutPage />} />
-        <Route path = "/auth" element = {<RouteGuard element = {<Auth />} />}/>
-        {/* <Route path='/auth' element={<Auth />} /> */}
+        <Route path="/auth" element={<RouteGuard element={<Auth />} />} />
 
-        {/* Dashboard Nested Routes */}
+   
         <Route path='/dashboard/*' element={<DashboardLayout />} />
       </Routes>
-       <Footer/>
+
+      <Footer />
+
       
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
     </>
   )
 }
