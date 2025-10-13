@@ -34,6 +34,11 @@ const symbols = [   "AAPL",   "MSFT",   "GOOGL",   "AMZN",   "META",   "TSLA",  
       "ENPH",   "FSLR",   "JPM",   "GS",   "MS",   "BAC",   "WFC",   "C",   "BLK",   "SCHW",   "TROW", 
      "SPGI",   "PFE",  "JNJ",   "MRK",   "ABBV",   "LLY",   "UNH",   "BMY",   "AMGN",   "GILD",   "CVS",   "DIS",   "PARA",   "ROKU",   "WBD",   "SONY",   "TTWO",   "EA",   "MTCH",   "SPOT",   "ZM", ];
 // ✅ Stocks route
+
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
+
 app.get("/api/stocks", async (req, res) => {
   try {
     const cachedData = await client.get("stocks");
