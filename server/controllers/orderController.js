@@ -106,13 +106,13 @@ export const createOrder = async (req, res) => {
     }
 
     // // ✅ Intraday validation
-    // if (orderType === "INTRADAY" && !isWithinMarketHours()) {
-    //   await session.abortTransaction();
-    //   await session.endSession();
-    //   return res.status(400).json({
-    //     message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
-    //   });
-    // }
+    if (orderType === "INTRADAY" && !isWithinMarketHours()) {
+      await session.abortTransaction();
+      await session.endSession();
+      return res.status(400).json({
+        message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
+      });
+    }
 
     // ✅ Base order object
     const baseOrder = {
@@ -156,7 +156,7 @@ export const createOrder = async (req, res) => {
     await session.commitTransaction();
     await session.endSession();
 
-    return res.status(201).json({
+    return res.status(201).json({ success: true,
       message: `Order placed successfully for ${numericQuantity} shares of ${symbol} at ${priceToUse.toFixed(
         2
       )} ${currency}.`,
@@ -175,13 +175,6 @@ export const createOrder = async (req, res) => {
 // Get Orders by User ID
 export const getOrderById = async (req, res) => {
   try {
-
-
-    
-
-    // console.log('Request user object:', req.user);
-    // console.log('Request headers:', req.headers);
-
 
     const userId = req.user?.id;
     if (!userId) {
@@ -236,14 +229,15 @@ export const getOrderById = async (req, res) => {
 
 export const getUserOrders = async (req, res) => {
   try {
+    
     const userId = req?.user?.id;
     const orderTypeQuery = req.query.type;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized: No user ID found" });
     }
-
-    const orders = await Order.find({ userId });
+   
+    const orders = await Order.find({userId});
     if (!orders || orders.length === 0) {
       return res.status(404).json({ message: "No orders found for this user" });
     }

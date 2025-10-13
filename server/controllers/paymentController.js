@@ -103,7 +103,7 @@ const capturePayment = async(req,res) =>{
 
     if (event === "payment.captured") {
       const payment = req.body.payload.payment.entity;
-       console.log(payment);
+       
       const authToken = payment.notes.auth_token;
        // Decode Token
       const publicKey = process.env.CLERK_PEM_PUBLIC_KEY;
@@ -144,7 +144,7 @@ const capturePayment = async(req,res) =>{
       user.balance += payment.amount / 100;
       user.transactionStatus = "paid";
       await user.save();
-      // console.log("Payment captured via webhook:", payment);
+      
 
       // Extract user + transaction details
       const transactionData = {
@@ -166,18 +166,16 @@ const capturePayment = async(req,res) =>{
       const newTransaction = new Transaction(transactionData);
       await newTransaction.save();
 
-      // Send payment success SMS
-       // Send SMS notification
-      //  console.log("Payment contact:", payment.contact);
+ 
       if (payment.contact) {
         await sendPaymentSMS(payment.contact, payment.amount / 100);
       }
-      // console.log("Transaction saved:", newTransaction);
+    
     
     }
     else if(event === "payment.failed"){
       const payment = req.body.payload.payment.entity;
-      // console.log(payment);
+      
       const authToken = payment.notes.auth_token;
        // Decode Token
       const publicKey = process.env.CLERK_PEM_PUBLIC_KEY;
@@ -225,8 +223,7 @@ const capturePayment = async(req,res) =>{
       const newTransaction = new Transaction(transactionData);
       await newTransaction.save();
 
-      // console.log("Transaction saved:", newTransaction);
-      // console.log("Payment failed via webhook:", payment);
+  
     }
 
     res.status(200).json({ status: "ok" });
