@@ -34,6 +34,11 @@ const symbols = [   "AAPL",   "MSFT",   "GOOGL",   "AMZN",   "META",   "TSLA",  
       "ENPH",   "FSLR",   "JPM",   "GS",   "MS",   "BAC",   "WFC",   "C",   "BLK",   "SCHW",   "TROW", 
      "SPGI",   "PFE",  "JNJ",   "MRK",   "ABBV",   "LLY",   "UNH",   "BMY",   "AMGN",   "GILD",   "CVS",   "DIS",   "PARA",   "ROKU",   "WBD",   "SONY",   "TTWO",   "EA",   "MTCH",   "SPOT",   "ZM", ];
 // ✅ Stocks route
+
+app.get("/", (req, res) => {
+  res.send("Server running...");
+});
+
 app.get("/api/stocks", async (req, res) => {
   try {
     const cachedData = await client.get("stocks");
@@ -80,17 +85,6 @@ app.get("/api/hist/stocks", async (req, res) => {
       return res.status(200).json({ result : result });
     }
 
-    // const data = result.chart.result[0];
-    // const prices = data.timestamp.map((t, i) => ({
-    //   date: new Date(t * 1000),
-    //   open: data.indicators.quote[0].open[i],
-    //   high: data.indicators.quote[0].high[i],
-    //   low: data.indicators.quote[0].low[i],
-    //   close: data.indicators.quote[0].close[i],
-    //   volume: data.indicators.quote[0].volume[i],
-    // }));
-
-    // res.status(200).json(prices);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
