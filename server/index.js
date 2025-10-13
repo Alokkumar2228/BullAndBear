@@ -75,7 +75,7 @@ app.get("/api/hist/stocks", async (req, res) => {
     const queryOptions = { period1: '2019-01-01', period2: '2020-01-01', interval: "1d" };
 
     const result = await yahooFinance.chart(stocksymbol, queryOptions);
-    // console.log(result);
+    
     if (result) {
       return res.status(200).json({ result : result });
     }

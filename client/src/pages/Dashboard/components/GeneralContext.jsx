@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import BuyActionWindow from "@/pages/Dashboard/components/BuyActionWindow/BuyActionWindow";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
+import { toast } from 'react-toastify';
 
 
 
@@ -32,7 +33,6 @@ export const GeneralContextProvider = (props) => {
 
   const findUserFundsData = useCallback(async() =>{
     const authToken = await getToken();
-    console.log(authToken);
     const response = await axios.get(`${BASE_URL}/api/user/get-user-data`,{
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -57,7 +57,7 @@ const findTransactionData = useCallback(async () => {
       },
     });
     setTransactionData(response.data.transactions);
-    // console.log("transaction" ,response.data);
+    
   } catch (error) {
     console.error("Error fetching transaction data:", error);
   }
@@ -68,9 +68,6 @@ useEffect(() => {
   findTransactionData();
 }, [findUserFundsData, findTransactionData]);
 
-useEffect(() => {
-  // console.log("transactionData", transactionData);
-}, [transactionData]);
 
 const withdrawFund = useCallback(async (data) => {
   try {
@@ -89,45 +86,8 @@ const withdrawFund = useCallback(async (data) => {
   }
 }, []);
 
-
-// const handleSellStock = useCallback(async (data, quantity) => {
-//   try {
-//     console.log("sell data", data, quantity);
-//     const authToken = await getToken();
-//     const selldata = {
-//       symbol: data.symbol,
-//       quantity: quantity,
-//       sellPrice: data.actualPrice,
-//       orderId: data.orderId,
-//     };
-//     console.log("selldata", selldata);
-
-//     const response = await axios.post(
-//       `${BASE_URL}/api/order/sell-order`,
-//       { selldata },
-//       {
-//         headers: {
-//           Authorization: `Bearer ${authToken}`,
-//           "Content-Type": "application/json",
-//         },
-//       }
-//     );
-
-//     if (response.data.success) {
-//       console.log("Sell successful:", response.data);
-//       await findUserFundsData();
-//       await findTransactionData();
-//     }
-
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error in handleSellStock:", error);
-//     return { success: false, message: "Failed to sell stock." };
-//   }
-// }, [getToken, findUserFundsData, findTransactionData]);
-
   const handleSellStock = useCallback(async(data , quantity)=>{
-    // console.log("sell data" , data , quantity);
+    
     const authToken = await getToken();
     const selldata = {
       symbol : data.symbol,
@@ -135,7 +95,7 @@ const withdrawFund = useCallback(async (data) => {
       sellPrice : data.actualPrice,
       orderId : data.orderId,
     }
-    // console.log("selldata" , selldata);
+   
     const response = await axios.post(`${BASE_URL}/api/order/sell-order`,{selldata},{
       headers:{
         Authorization: `Bearer ${authToken}`,
@@ -146,6 +106,7 @@ const withdrawFund = useCallback(async (data) => {
     if(response.data.success){
       await findUserFundsData();
       await findTransactionData();
+      toast.success("Order sold successfully!");
     }
 
     return response.data;

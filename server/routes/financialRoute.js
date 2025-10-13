@@ -2,7 +2,6 @@ import express from 'express';
 import {
     getKeyMetrics,
     getFinancialScores,
-    getIncomeStatementGrowth,
     getMarketCap,
     getBalanceSheet,
     getCashFlow,
@@ -18,7 +17,6 @@ const router = express.Router();
 // Routes with unique names
 router.get('/metrics/:symbol', getKeyMetrics);                // Key Metrics
 router.get('/scores/:symbol', getFinancialScores);           // Financial Scores
-router.get('/income-growth/:symbol', getIncomeStatementGrowth); // Income Statement Growth
 router.get('/market-cap/:symbol', getMarketCap);             // Market Capitalization
 router.get('/balance-sheet/:symbol', getBalanceSheet);       // Balance Sheet Statement
 router.get('/cash-flow/:symbol', getCashFlow);               // Cash Flow Statement

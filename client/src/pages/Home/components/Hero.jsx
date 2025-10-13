@@ -26,7 +26,7 @@ function Hero() {
           </p>
           <button
             className="p-2 p-md-3 btn btn-primary fs-6 fs-md-5 mb-1 text-center d-flex justify-content-center align-items-center"
-            style={{ width: "90%", maxWidth: "300px" }}
+            style={{ width: "90%", maxWidth: "250px" }}
             onClick={() => navigate("/auth")}
           >
             Signup Now
