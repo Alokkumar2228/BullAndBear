@@ -11,7 +11,6 @@ const client = createClient({
     port: process.env.REDIS_PORT,
     reconnectStrategy: (retries) => {
       console.log(`🔁 Redis reconnect attempt #${retries}`);
-      // Try again with exponential backoff, up to 3 seconds
       return Math.min(retries * 100, 3000);
     },
   },

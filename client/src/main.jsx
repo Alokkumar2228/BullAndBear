@@ -5,6 +5,8 @@ import App from "./App.jsx";
 import "./index.css";
 import { ContextApiProvider } from "./context/ContextApiProvider.jsx";
 import { ClerkProvider } from '@clerk/clerk-react';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 // New TanStack Query Imports
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

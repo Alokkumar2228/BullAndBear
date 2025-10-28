@@ -112,7 +112,7 @@ const WatchListItem = ({ stock }) => {
 
       {/* Action buttons (shown on hover) */}
       {showWatchlistActions && (
-        <WatchListActions uid={stock.name} data={stock} />
+        <WatchListActions uid={stock.name} data={stock} symbol={stock.symbol}/>
       )}
     </li>
   );
@@ -121,7 +121,7 @@ const WatchListItem = ({ stock }) => {
 // ========================
 // ACTION BUTTONS COMPONENT
 // ========================
-const WatchListActions = ({ uid, data }) => {
+const WatchListActions = ({ uid, data ,symbol }) => {
   const { handleOpenBuyWindow } = useContext(GeneralContext);
   const [showChart, setShowChart] = useState(false);
   const [showNews, setShowNews] = useState(false);
@@ -137,6 +137,10 @@ const WatchListActions = ({ uid, data }) => {
   const handleCloseNews = () => setShowNews(false);
   const handleMoreClick = (event) => setAnchorEl(event.currentTarget);
   const handleCloseMore = () => setAnchorEl(null);
+
+  const viewAnalysis = () => {
+    window.open(`/company_analysis?symbol=${symbol}`, "_blank");
+  }
 
   return (
     <>
@@ -262,7 +266,7 @@ const WatchListActions = ({ uid, data }) => {
         }}
       >
         <MenuItem
-          onClick={handleCloseMore}
+          onClick={viewAnalysis}
           style={{
             fontSize: "10px",
             padding: "6px 12px",

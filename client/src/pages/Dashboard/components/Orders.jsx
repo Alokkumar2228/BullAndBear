@@ -31,15 +31,12 @@ export default function Orders() {
         }
       );
 
-      // console.log('Current filter:', filter);
-      // console.log('All orders:', response.data.orders);
+      
       
       if (filter !== 'all' && response.data.orders) {
         const filteredOrders = response.data.orders.filter(order => {
-          // console.log('Checking order:', order);
           return order.orderType === filter;
-        });
-        // console.log('Filtered orders:', filteredOrders);
+        });    
         setOrders(filteredOrders);
       } else {
         // console.log('Setting all orders');

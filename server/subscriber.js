@@ -63,7 +63,7 @@ async function connectRedis() {
   await subscriber.subscribe("stockSold", async (message) => {
     try {
       const data = JSON.parse(message);
-      // console.log("📩 Received stock sold event:", data);
+      
 
       const {
         userId,
@@ -108,9 +108,7 @@ async function connectRedis() {
         await updatedUser.save();
       }
 
-      // console.log(
-      //   `✅ Updated user ${userId}: balance = ${updatedUser.balance}, investedAmount = ${updatedUser.investedAmount}`
-      // );
+      
 
       // Save sell order
       const sellOrder = new userallOrder({
@@ -128,7 +126,7 @@ async function connectRedis() {
       });
 
       await sellOrder.save();
-      // console.log("💾 Sell order saved:", sellOrder.orderId);
+      
     } catch (error) {
       console.error("❌ Error processing stockSold event:", error);
     }
@@ -136,7 +134,7 @@ async function connectRedis() {
 
   // Graceful shutdown
   process.on("SIGINT", async () => {
-    console.log("\n🧹 Closing Redis and MongoDB connections...");
+   
     await subscriber.quit();
     await mongoose.disconnect();
     process.exit(0);

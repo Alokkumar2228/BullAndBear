@@ -1,6 +1,6 @@
 // src/components/Payment.jsx
 import axios from "axios";
-
+import { toast } from 'react-toastify';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL
 
@@ -23,9 +23,10 @@ const BASE_URL = import.meta.env.VITE_BASE_URL
         if (verifyRes.data.success) {
           await findUserFundsData();
           await findTransactionData();
-          alert("Payment successful & verified!");
+          toast.success("Payment successful & verified!");
         } else {
           alert("Payment verification failed");
+          toast.error("Payment verification failed"); 
         }
       } catch (err) {
         console.error("Error verifying payment:", err);

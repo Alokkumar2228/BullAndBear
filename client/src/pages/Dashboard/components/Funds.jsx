@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import {createOrder } from "@/pages/Dashboard/utils"
 import {useAuth} from "@clerk/clerk-react";
 import { GeneralContext } from "./GeneralContext";
+import { toast } from "react-toastify";
 
 const Funds = () => {
   const {getToken} = useAuth();
@@ -19,7 +20,7 @@ const Funds = () => {
   const [accountNumber, setAccountNumber] = useState('');
   const [ifscCode, setIfscCode] = useState('');
 
-  // console.log("fund" , userFundData);
+
 
   // Get data from context API
   const fundsData = {
@@ -83,11 +84,10 @@ const Funds = () => {
 
       const response = await withdrawFund(data);
 
-      // console.log(response);
-
       // Show loading for 2 seconds
       setTimeout(async () => {
         if(response && response.success){
+          toast.success("Withdrawal successful!");
           await findUserFundsData();
           await findTransactionData();
           setIsProcessing(false);

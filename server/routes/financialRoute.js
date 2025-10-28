@@ -2,12 +2,10 @@ import express from 'express';
 import {
     getKeyMetrics,
     getFinancialScores,
-    getIncomeStatementGrowth,
     getMarketCap,
     getBalanceSheet,
     getCashFlow,
     getIncomeStatementReported,
-    getBalanceSheetReported
 } from '../controllers/financialController.js';
 // import clerkAuth from '../middleware/clerkAuth.js';
 
@@ -18,12 +16,10 @@ const router = express.Router();
 // Routes with unique names
 router.get('/metrics/:symbol', getKeyMetrics);                // Key Metrics
 router.get('/scores/:symbol', getFinancialScores);           // Financial Scores
-router.get('/income-growth/:symbol', getIncomeStatementGrowth); // Income Statement Growth
 router.get('/market-cap/:symbol', getMarketCap);             // Market Capitalization
 router.get('/balance-sheet/:symbol', getBalanceSheet);       // Balance Sheet Statement
 router.get('/cash-flow/:symbol', getCashFlow);               // Cash Flow Statement
 router.get('/income-reported/:symbol', getIncomeStatementReported); // Income Statement As Reported
-router.get('/balance-reported/:symbol', getBalanceSheetReported);   // Reported Balance Sheet
 
 export default router;
 

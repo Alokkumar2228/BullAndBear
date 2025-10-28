@@ -106,13 +106,13 @@ export const createOrder = async (req, res) => {
     }
 
     // // ✅ Intraday validation
-    // if (orderType === "INTRADAY" && !isWithinMarketHours()) {
-    //   await session.abortTransaction();
-    //   await session.endSession();
-    //   return res.status(400).json({
-    //     message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
-    //   });
-    // }
+    if (orderType === "INTRADAY" && !isWithinMarketHours()) {
+      await session.abortTransaction();
+      await session.endSession();
+      return res.status(400).json({
+        message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
+      });
+    }
 
     // ✅ Base order object
     const baseOrder = {
@@ -156,7 +156,7 @@ export const createOrder = async (req, res) => {
     await session.commitTransaction();
     await session.endSession();
 
-    return res.status(201).json({
+    return res.status(201).json({ success: true,
       message: `Order placed successfully for ${numericQuantity} shares of ${symbol} at ${priceToUse.toFixed(
         2
       )} ${currency}.`,
@@ -175,13 +175,6 @@ export const createOrder = async (req, res) => {
 // Get Orders by User ID
 export const getOrderById = async (req, res) => {
   try {
-
-
-    
-
-    // console.log('Request user object:', req.user);
-    // console.log('Request headers:', req.headers);
-
 
     const userId = req.user?.id;
     if (!userId) {
@@ -236,14 +229,15 @@ export const getOrderById = async (req, res) => {
 
 export const getUserOrders = async (req, res) => {
   try {
+    
     const userId = req?.user?.id;
     const orderTypeQuery = req.query.type;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized: No user ID found" });
     }
-
-    const orders = await Order.find({ userId });
+   
+    const orders = await Order.find({userId});
     if (!orders || orders.length === 0) {
       return res.status(404).json({ message: "No orders found for this user" });
     }
@@ -470,80 +464,109 @@ export const sellStock = async (req, res) => {
   }
 
   const session = await mongoose.startSession();
-  await session.startTransaction();
+  session.startTransaction();
 
   try {
+    // 🔹 Fetch user's active order
     const order = await Order.findOne({ orderId }).session(session);
-
     if (!order) {
-      await session.abortTransaction();
-      await session.endSession();
-      return res.status(404).json({ success: false, message: "Order not found" });
+      throw new Error("Order not found");
     }
 
     const quantity = Number(sellQty);
-    if (isNaN(quantity) || quantity <= 0) {
-      await session.abortTransaction();
-      await session.endSession();
-      return res.status(400).json({ success: false, message: "Invalid sell quantity" });
+    if (isNaN(quantity) || quantity <= 0) throw new Error("Invalid sell quantity");
+    if (quantity > order.quantity) throw new Error("Sell quantity exceeds owned quantity");
+
+    // 🔹 Currency conversion rate
+    const usdInrRate = await getUsdInrRate();
+    const totalSellValueInRupee = quantity * sellPrice * usdInrRate;
+    const totalInvestmentRupee = quantity * order.purchasePrice * usdInrRate;
+
+    // 🔹 Update user balance and invested amount atomically
+    const updatedUser = await User.findOneAndUpdate(
+      { user_id: userId },
+      {
+        $inc: {
+          balance: totalSellValueInRupee,
+          investedAmount: -totalInvestmentRupee,
+        },
+      },
+      { new: true, session }
+    );
+
+    if (!updatedUser) throw new Error("User not found");
+
+    // Prevent negative investedAmount
+    if (updatedUser.investedAmount < 0) {
+      updatedUser.investedAmount = 0;
+      await updatedUser.save({ session });
     }
 
-    if (quantity > order.quantity) {
-      await session.abortTransaction();
-      await session.endSession();
-      return res.status(400).json({ success: false, message: "Sell quantity exceeds owned quantity" });
+    // 🔹 If entire quantity sold → delete order
+    if (quantity === order.quantity) {
+      await Order.deleteOne({ orderId }).session(session);
+    } else {
+      // 🔹 Partial sale → reduce quantity & totalAmount
+      order.quantity -= quantity;
+      order.totalAmount = order.quantity * order.purchasePrice;
+      await order.save({ session });
     }
 
-    const subscriberData = {
+    // 🔹 Record completed sell in userAllOrder collection
+    const sellOrder = new userallOrder({
       userId,
-      quantity,
-      sellPrice,
-      purchasePrice: order.purchasePrice,
-      symbol: order.symbol,
-      type: order.orderType,
+      orderId: `ORD-${Date.now()}`,
+      symbol,
       name: order.name,
       mode: "SELL",
-    };
+      orderType: order.orderType,
+      status: "EXECUTED",
+      quantity,
+      purchasePrice: order.purchasePrice,
+      sellPrice,
+      executedAt: new Date(),
+    });
 
-    // 🔹 If selling all
-    if (quantity === order.quantity) {
-      await Order.findOneAndDelete({ orderId }).session(session);
-      await client.publish("stockSold", JSON.stringify(subscriberData));
+    await sellOrder.save({ session });
 
-      await session.commitTransaction();  // ✅ await added
-      await session.endSession();
+    // 🔹 Publish event for analytics/logs (optional)
+    await client.publish(
+      "stockSold",
+      JSON.stringify({
+        userId,
+        symbol,
+        quantity,
+        sellPrice,
+        purchasePrice: order.purchasePrice,
+        orderType: order.orderType,
+        name: order.name,
+        mode: "SELL",
+      })
+    );
 
-      return res.status(200).json({
-        success: true,
-        message: "Entire position sold and order deleted",
-      });
-    }
-
-    // 🔹 Partial sale
-    order.quantity -= quantity;
-    order.totalAmount = order.quantity * order.purchasePrice;
-    await order.save({ session });
-
-    await client.publish("stockSold", JSON.stringify(subscriberData));
-
-    await session.commitTransaction();  // ✅ await added
-    await session.endSession();
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(200).json({
       success: true,
-      message: "Stock sold successfully",
-      updatedOrder: order,
+      message:
+        quantity === order.quantity
+          ? "Entire position sold and order deleted"
+          : "Stock sold successfully",
+      updatedOrder: quantity === order.quantity ? null : order,
+      updatedUser,
     });
-
   } catch (error) {
-    // ✅ Only abort if still in transaction
     if (session.inTransaction()) {
       await session.abortTransaction();
     }
-    await session.endSession();
+    session.endSession();
 
     console.error("❌ sellStock error:", error);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
   }
 };
 
