@@ -15,10 +15,27 @@ import financialRouter from "./routes/financialRoute.js";
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  ];
+  
+  app.use(cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  }));
+
 // Normal middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
 
 // Connect DB
 connectDB();
@@ -36,7 +53,7 @@ const symbols = [   "AAPL",   "MSFT",   "GOOGL",   "AMZN",   "META",   "TSLA",  
 // ✅ Stocks route
 
 app.get("/", (req, res) => {
-  res.send("Server running...");
+  res.send("API is running...");
 });
 
 app.get("/api/stocks", async (req, res) => {
@@ -127,7 +144,7 @@ app.get("/api/hist/stocks", async (req, res) => {
     const queryOptions = { period1: '2019-01-01', period2: '2020-01-01', interval: "1d" };
 
     const result = await yahooFinance.chart(stocksymbol, queryOptions);
-    
+    // console.log(result);
     if (result) {
       return res.status(200).json({ result : result });
     }
