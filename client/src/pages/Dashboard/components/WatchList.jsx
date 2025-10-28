@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { ContextApi } from "@/context/ContextApi";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
 import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget";
+import ViewNews from "@/pages/Dashboard/components/ViewNews";
 
 import {
   Tooltip,
@@ -123,11 +124,17 @@ const WatchListItem = ({ stock }) => {
 const WatchListActions = ({ uid, data ,symbol }) => {
   const { handleOpenBuyWindow } = useContext(GeneralContext);
   const [showChart, setShowChart] = useState(false);
+  const [showNews, setShowNews] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleBuyClick = () => handleOpenBuyWindow(uid, data);
   const handleChartClick = () => setShowChart(true);
   const handleCloseChart = () => setShowChart(false);
+  const handleNewsClick = () => {
+    setShowNews(true);
+    setAnchorEl(null); // Close the menu
+  };
+  const handleCloseNews = () => setShowNews(false);
   const handleMoreClick = (event) => setAnchorEl(event.currentTarget);
   const handleCloseMore = () => setAnchorEl(null);
 
@@ -268,7 +275,7 @@ const WatchListActions = ({ uid, data ,symbol }) => {
           View Balance Sheet
         </MenuItem>
         <MenuItem
-          onClick={handleCloseMore}
+          onClick={handleNewsClick}
           style={{
             fontSize: "10px",
             padding: "6px 12px",
@@ -327,6 +334,12 @@ const WatchListActions = ({ uid, data ,symbol }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* === NEWS POPUP === */}
+      <ViewNews 
+        isOpen={showNews} 
+        onClose={handleCloseNews} 
+      />
     </>
   );
 };
