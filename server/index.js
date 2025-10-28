@@ -61,8 +61,7 @@ app.get("/api/stocks", async (req, res) => {
       volume: q.regularMarketVolume,
       peRatio: q.trailingPE,
       dividendYield: q.dividendYield,
-    }));
-
+    }));        
     //set cached
     await client.set("stocks", JSON.stringify(formatted), { EX: 3600 });
     res.json(formatted);
@@ -71,11 +70,59 @@ app.get("/api/stocks", async (req, res) => {
   }
 });
 
+app.get("/api/us-market-indices", async (req, res) => {
+  try {
+    const cacheKey = "us-market-indices";
+
+    const cachedData = await client.get(cacheKey);
+    if (cachedData) {
+      return res.json(JSON.parse(cachedData));
+    }
+
+
+    const [sp500, dowJones, nasdaq] = await Promise.all([
+      yahooFinance.quote("^GSPC"),  // S&P 500
+      yahooFinance.quote("^DJI"),   // Dow Jones Industrial Average
+      yahooFinance.quote("^IXIC"),  // NASDAQ Composite
+    ]);
+
+    const indicesData = {
+      sp500: {
+        symbol: sp500.symbol,
+        name: sp500.shortName,
+        price: sp500.regularMarketPrice,
+        change: sp500.regularMarketChange,
+        changePercent: sp500.regularMarketChangePercent,
+      },
+      dowJones: {
+        symbol: dowJones.symbol,
+        name: dowJones.shortName,
+        price: dowJones.regularMarketPrice,
+        change: dowJones.regularMarketChange,
+        changePercent: dowJones.regularMarketChangePercent,
+      },
+      nasdaq: {
+        symbol: nasdaq.symbol,
+        name: nasdaq.shortName,
+        price: nasdaq.regularMarketPrice,
+        change: nasdaq.regularMarketChange,
+        changePercent: nasdaq.regularMarketChangePercent,
+      },
+    };
+
+
+    await client.set(cacheKey, JSON.stringify(indicesData), { EX: 3600 });
+
+    res.json(indicesData);
+  } catch (error) {
+    console.error("Error fetching US market indices:", error);
+    res.status(500).json({ error: "Failed to fetch US market data" });
+  }
+});
+
 app.get("/api/hist/stocks", async (req, res) => {
   try {
-    const stocksymbol = req.query.symbol || "MSFT"; // default to AAPL
-    // const now = Math.floor(Date.now() / 1000);
-    // const fiveYearsAgo = now - 5 * 365 * 24 * 60 * 60;
+    const stocksymbol = req.query.symbol || "MSFT"; 
 
     const queryOptions = { period1: '2019-01-01', period2: '2020-01-01', interval: "1d" };
 

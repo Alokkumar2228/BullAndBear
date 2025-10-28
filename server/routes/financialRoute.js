@@ -6,7 +6,6 @@ import {
     getBalanceSheet,
     getCashFlow,
     getIncomeStatementReported,
-    getBalanceSheetReported
 } from '../controllers/financialController.js';
 // import clerkAuth from '../middleware/clerkAuth.js';
 
@@ -21,7 +20,6 @@ router.get('/market-cap/:symbol', getMarketCap);             // Market Capitaliz
 router.get('/balance-sheet/:symbol', getBalanceSheet);       // Balance Sheet Statement
 router.get('/cash-flow/:symbol', getCashFlow);               // Cash Flow Statement
 router.get('/income-reported/:symbol', getIncomeStatementReported); // Income Statement As Reported
-router.get('/balance-reported/:symbol', getBalanceSheetReported);   // Reported Balance Sheet
 
 export default router;
 

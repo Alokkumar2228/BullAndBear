@@ -42,8 +42,6 @@ export const getFinancialScores = async (req, res) => {
   }
 };
 
-
-
 // 4. Historical Market Capitalization
 export const getMarketCap = async (req, res) => {
   const { symbol } = req.params;
@@ -64,7 +62,20 @@ export const getBalanceSheet = async (req, res) => {
     const response = await axios.get(
       `${BASE_URL}/balance-sheet-statement?symbol=${symbol}&apikey=${API_KEY}`
     );
-    res.json(response.data);
+    const data = response.data.map((item) => {
+      return {
+        symbol: item.symbol,
+        fiscalYear: item.fiscalYear,
+        totalAssets: item.totalAssets,
+        totalLiabilities: item.totalLiabilities,
+        totalEquity: item.totalEquity,
+        cashAndShortTermInvestments: item.cashAndShortTermInvestments,
+        longTermDebt: item.longTermDebt,
+        totalDebt: item.totalDebt,
+        netDebt: item.netDebt,
+      };
+    });
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -77,7 +88,20 @@ export const getCashFlow = async (req, res) => {
     const response = await axios.get(
       `${BASE_URL}/cash-flow-statement?symbol=${symbol}&apikey=${API_KEY}`
     );
-    res.json(response.data);
+
+    // Assuming response.data is an array
+    const filteredData = response.data.map((item) => ({
+      fiscalYear: item.fiscalYear,
+      netIncome: item.netIncome,
+      operatingCashFlow: item.operatingCashFlow,
+      capitalExpenditure: item.capitalExpenditure,
+      freeCashFlow: item.freeCashFlow,
+      dividendsPaid: item.netDividendsPaid,
+      stockBuybacks: item.commonStockRepurchased,
+      netDebtChange: item.netDebtIssuance,
+    }));
+
+    res.json(filteredData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -90,20 +114,11 @@ export const getIncomeStatementReported = async (req, res) => {
     const response = await axios.get(
       `${BASE_URL}/income-statement-as-reported?symbol=${symbol}&apikey=${API_KEY}`
     );
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// 8. Reported Balance Sheet
-export const getBalanceSheetReported = async (req, res) => {
-  const { symbol } = req.params;
-  try {
-    const response = await axios.get(
-      `${BASE_URL}/balance-sheet-statement-as-reported?symbol=${symbol}&apikey=${API_KEY}`
-    );
-    res.json(response.data);
+    const filteredData = response.data.map((item) => ({
+      fiscalYear: item.fiscalYear,
+      netProfit: item.data.grossprofit,
+    }));
+    res.json(filteredData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

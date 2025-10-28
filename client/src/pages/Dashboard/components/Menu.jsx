@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import assets from "@/assets";
 import { useClerk } from "@clerk/clerk-react";
 import { Link, useNavigate } from "react-router-dom";
-import "./dashboard.css";
+
 
 const Menu = () => {
   const [selectedMenu, setSelectedMenu] = useState(0);
@@ -15,6 +15,8 @@ const Menu = () => {
 
   const handleUserfileClick = () => {
     setShowDropdown((prev) => !prev);
+    console.log("Profile clicked");
+    console.log(showDropdown);
   };
 
   const handleMenuClick = (index) => {
@@ -140,15 +142,15 @@ const Menu = () => {
           <div
             className="dropdown"
             style={{
-              position: "absolute",
-              right: "0",
-              top: "50px",
+              position: "fixed",
+              right: "30px",
+              top: "60px",
               backgroundColor: "#fff",
               border: "1px solid #ddd",
               borderRadius: "8px",
-              padding: "10px",
+              padding: "5px",
               boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-              zIndex: 10,
+              zIndex: 999999,
             }}
           >
             <button
@@ -169,7 +171,7 @@ const Menu = () => {
             >
               <i
                 className="fa-solid fa-right-from-bracket"
-                style={{ fontSize: "16px", color: "black" }}
+                style={{ fontSize: "16px", color: "red" }}
               ></i>
               Logout
             </button>
