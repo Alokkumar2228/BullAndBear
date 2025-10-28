@@ -45,7 +45,7 @@ export const GeneralContextProvider = (props) => {
       withdrawAmount : response.data.user.withdrawAmount,
     }
     setUserFundData(data);
-  }, []);
+  }, [getToken, BASE_URL]);
 
 const findTransactionData = useCallback(async () => {
   try {
@@ -61,12 +61,12 @@ const findTransactionData = useCallback(async () => {
   } catch (error) {
     console.error("Error fetching transaction data:", error);
   }
-}, []);
+}, [getToken, BASE_URL]);
 
-useEffect(() => {
-  findUserFundsData();
-  findTransactionData();
-}, [findUserFundsData, findTransactionData]);
+// useEffect(() => {
+//   findUserFundsData();
+//   findTransactionData();
+// }, [findUserFundsData, findTransactionData]);
 
 
 const withdrawFund = useCallback(async (data) => {
@@ -84,7 +84,7 @@ const withdrawFund = useCallback(async (data) => {
     console.error("Error withdrawing fund:", error);
     return { success: false, message: "Withdraw request failed." };
   }
-}, []);
+}, [getToken, BASE_URL]);
 
   const handleSellStock = useCallback(async(data , quantity)=>{
     
@@ -111,11 +111,25 @@ const withdrawFund = useCallback(async (data) => {
 
     return response.data;
 
-  },[getToken ,findUserFundsData, findTransactionData]);
+  },[getToken ,findUserFundsData, findTransactionData,BASE_URL]);
+
+
+  const initializeDashboardData = useCallback(async()=>{
+    await Promise.all([
+      findUserFundsData(),
+      findTransactionData(),
+    ])
+  },[findUserFundsData, findTransactionData])
+
+    useEffect(() => {
+    initializeDashboardData();
+  }, [initializeDashboardData]);
+
+
 
   return (
     <GeneralContext.Provider value={{ handleOpenBuyWindow,transactionData, handleCloseBuyWindow ,
-    userFundData ,findTransactionData ,findUserFundsData,withdrawFund , handleSellStock}}>
+    userFundData ,findTransactionData ,findUserFundsData,withdrawFund , handleSellStock  }}>
       {props.children}
       {isBuyWindowOpen && <BuyActionWindow uid={selectedStockUID} data = {selectedStockData} />}
     </GeneralContext.Provider>
