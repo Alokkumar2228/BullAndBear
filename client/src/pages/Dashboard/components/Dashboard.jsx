@@ -9,6 +9,7 @@ import Summary from '@/pages/Dashboard/components/Summary';
 import WatchList from '@/pages/Dashboard/components/WatchList';
 import {GeneralContextProvider} from '@/pages/Dashboard/components/GeneralContext';
 import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget";
+import NewsButton from "@/pages/Dashboard/components/NewsButton";
 // import WatchList from "./WatchList";
 
 
@@ -17,6 +18,7 @@ const Dashboard = ({user}) => {
     <div className="dashboard-container">
      <GeneralContextProvider>
        <WatchList  user={user} />
+       <NewsButton />
      
     
      

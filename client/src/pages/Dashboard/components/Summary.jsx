@@ -1,8 +1,11 @@
 import React from "react";
 import axios from "axios";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import "./dashboard.css";
+import ProfitAndLossGraph from "../components/profitAnadLossGraph";
+import NewsButton from "./NewsButton";
+
 
 
 const BASE_URL = import.meta.env.VITE_BASE_URL
@@ -13,7 +16,7 @@ const Summary = () => {
 
   const { getToken } = useAuth();
 
-  const findOrder = async () => {
+  const findOrder = useCallback(async () => {
     try {
       const authToken = await getToken();
       const response = await axios.post(
@@ -34,11 +37,11 @@ const Summary = () => {
         error.response?.data || error.message
       );
     }
-  };
+  }, [getToken]);
 
   useEffect(() => {
     findOrder();
-  }, []);
+  }, [findOrder]);
 
   const calInvestment = () => {
     let sum = 0;
@@ -63,10 +66,13 @@ const Summary = () => {
     <>
       <div className="username">
         <h6>Hi, {user}!</h6>
+        <NewsButton />
         <hr className="divider" />
       </div>
 
-      <div className="section">
+      <ProfitAndLossGraph />
+
+      {/* <div className="section">
         <span>
           <p>Equity</p>
         </span>
@@ -88,7 +94,7 @@ const Summary = () => {
           </div>
         </div>
         <hr className="divider" />
-      </div>
+      </div> */}
 
       <div className="section">
         <span>
@@ -116,7 +122,7 @@ const Summary = () => {
               Current Value <span>${calActualValue()}</span>{" "}
             </p>
             <p>
-              Investment <span>${calInvestment()}</span>{" "}
+              Investment <span>${calInvestment().toFixed(2)}</span>{" "}
             </p>
           </div>
         </div>
