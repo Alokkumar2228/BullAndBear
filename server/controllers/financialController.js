@@ -4,7 +4,6 @@ import DailyPL from "../models/DailyPLModel.js";
 import DailyPLHoldings from "../models/DailyPLHoldingsModel.js";
 import DailyPLPositions from "../models/DailyPLPositionsModel.js";
 
-
 const API_KEY = "lX94JNVaadFWz8MO8ySstPu02wNHYJFF";
 const BASE_URL = "https://financialmodelingprep.com/stable";
 
