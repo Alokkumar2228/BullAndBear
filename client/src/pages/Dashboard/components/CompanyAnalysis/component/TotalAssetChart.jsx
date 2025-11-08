@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import axios from 'axios';
 
-const MarketCapChart = ({ symbol = 'AAPL' }) => {
+const TotalAssetsChart = ({ symbol = 'AAPL' }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,37 +13,27 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
         setLoading(true);
         
         // Simulated API response - replace with your actual API call
-        const mockResponse = {
-          success: true,
-          data: [
-            { symbol: "AAPL", date: "2025-10-31", marketCap: 4041625945000 },
-            { symbol: "AAPL", date: "2025-10-30", marketCap: 4057022899999 },
-            { symbol: "AAPL", date: "2025-08-05", marketCap: 3033349620000 },
-            { symbol: "AAPL", date: "2024-12-15", marketCap: 3800000000000 },
-            { symbol: "AAPL", date: "2024-06-20", marketCap: 3200000000000 },
-            { symbol: "AAPL", date: "2023-11-10", marketCap: 2950000000000 },
-            { symbol: "AAPL", date: "2023-03-15", marketCap: 2400000000000 },
-            { symbol: "AAPL", date: "2022-09-20", marketCap: 2650000000000 },
-            { symbol: "AAPL", date: "2022-01-10", marketCap: 3000000000000 },
-            { symbol: "AAPL", date: "2021-08-15", marketCap: 2450000000000 },
-            { symbol: "AAPL", date: "2021-03-20", marketCap: 2100000000000 },
-            { symbol: "AAPL", date: "2020-10-05", marketCap: 2200000000000 },
-            { symbol: "AAPL", date: "2020-05-12", marketCap: 1800000000000 }
-          ]
-        };
+        // const mockResponse = [
+        //   { symbol: "AAPL", date: "2025-09-27", fiscalYear: "2025", currency: "USD", inventory: 6502000000, totalAssets: 73733000000, shareholdersEquity: 32160000000 },
+        //   { symbol: "AAPL", date: "2024-09-28", fiscalYear: "2024", currency: "USD", inventory: 6808500000, totalAssets: 56950000000, shareholdersEquity: 22275000000 },
+        //   { symbol: "AAPL", date: "2023-09-30", fiscalYear: "2023", currency: "USD", inventory: 5638500000, totalAssets: 62146000000, shareholdersEquity: 52634000000 },
+        //   { symbol: "AAPL", date: "2022-09-24", fiscalYear: "2022", currency: "USD", inventory: 5763000000, totalAssets: 50672000000, shareholdersEquity: 33957000000 },
+        //   { symbol: "AAPL", date: "2021-09-25", fiscalYear: "2021", currency: "USD", inventory: 5320500000, totalAssets: 63090000000, shareholdersEquity: 58882000000 }
+        // ];
         
-        // Uncomment this for actual API call:
-        // const response = await axios.get(`http://localhost:8000/api/financial/market-cap/${symbol}`);
-        // if (!response.data.success) {
-        //   throw new Error(`HTTP error! status: ${response.status}`);
-        // }
-        // const result = response.data.data;
+
+        const response = await axios.get(`http://localhost:8000/api/financial/balance-sheet/${symbol}`);
+        if (!response.data.success) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = response.data.data;
+        console.log('Fetched data:', result);
         
-        const result = mockResponse.data;
+        // const result = mockResponse;
         
-        // Process data to group by year and get average market cap
-        const yearlyData = processDataByYear(result);
-        setData(yearlyData);
+        // Process data for chart
+        const chartData = processData(result);
+        setData(chartData);
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -55,31 +46,18 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
     fetchData();
   }, [symbol]);
 
-  const processDataByYear = (rawData) => {
-    const yearMap = {};
-    
-    rawData.forEach(item => {
-      const year = new Date(item.date).getFullYear();
-      if (!yearMap[year]) {
-        yearMap[year] = {
-          total: 0,
-          count: 0
-        };
-      }
-      yearMap[year].total += item.marketCap;
-      yearMap[year].count += 1;
-    });
-
-    // Convert to array and sort by year
-    return Object.keys(yearMap)
-      .sort((a, b) => parseInt(a) - parseInt(b))
-      .map(year => ({
-        year: year,
-        marketCap: yearMap[year].total / yearMap[year].count
+  const processData = (rawData) => {
+    // Sort by fiscal year and map to chart format
+    return rawData
+      .sort((a, b) => parseInt(a.fiscalYear) - parseInt(b.fiscalYear))
+      .map(item => ({
+        year: item.fiscalYear,
+        totalAssets: item.totalAssets,
+        currency: item.currency
       }));
   };
 
-  const formatMarketCap = (value) => {
+  const formatAssets = (value) => {
     if (value >= 1e12) {
       return `$${(value / 1e12).toFixed(2)}T`;
     } else if (value >= 1e9) {
@@ -94,14 +72,22 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
     if (active && payload && payload.length) {
       return (
         <div className="custom-tooltip">
-          <p className="tooltip-year">{payload[0].payload.year}</p>
+          <p className="tooltip-year">FY {payload[0].payload.year}</p>
           <p className="tooltip-value">
-            Avg Market Cap: {formatMarketCap(payload[0].value)}
+            Total Assets: {formatAssets(payload[0].value)}
           </p>
         </div>
       );
     }
     return null;
+  };
+
+  const calculateGrowth = () => {
+    if (data.length < 2) return null;
+    const oldest = data[0].totalAssets;
+    const newest = data[data.length - 1].totalAssets;
+    const growth = ((newest - oldest) / oldest * 100).toFixed(1);
+    return growth;
   };
 
   if (loading) {
@@ -110,7 +96,7 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
         <div className="card">
           <div className="spinner-container">
             <div className="spinner"></div>
-            <p className="loading-text">Loading market data...</p>
+            <p className="loading-text">Loading financial data...</p>
           </div>
         </div>
       </div>
@@ -137,12 +123,14 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
     );
   }
 
+  const growth = calculateGrowth();
+
   return (
     <div className="container">
       <div className="card">
         <div className="header">
-          <h2 className="title">{symbol} Market Capitalization</h2>
-          <p className="subtitle">Average market cap by year ({data.length} years)</p>
+          <h2 className="title">{symbol} Total Assets</h2>
+          <p className="subtitle">Annual total assets by fiscal year</p>
         </div>
         
         <div className="chart-container">
@@ -159,26 +147,28 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
                 angle={0}
                 textAnchor="middle"
                 height={60}
+                label={{ value: 'Fiscal Year', position: 'insideBottom', offset: -10, fill: '#94a3b8' }}
               />
               <YAxis 
                 stroke="#666"
                 tick={{ fill: '#ffffff', fontSize: 12 }}
-                tickFormatter={formatMarketCap}
+                tickFormatter={formatAssets}
                 width={90}
+                label={{ value: 'Total Assets (USD)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(34, 197, 94, 0.1)' }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }} />
               <Bar 
-                dataKey="marketCap" 
-                fill="#22c55e"
+                dataKey="totalAssets" 
+                fill="#3b82f6"
                 radius={[8, 8, 0, 0]}
                 animationDuration={1000}
                 animationBegin={0}
-                maxBarSize={80}
+                maxBarSize={60}
               >
                 {data.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill="#22c55e"
+                    fill="#3b82f6"
                   />
                 ))}
               </Bar>
@@ -188,17 +178,25 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
         
         <div className="stats-container">
           <div className="stat-card">
-            <p className="stat-label">Years Tracked</p>
+            <p className="stat-label">Total Years</p>
             <p className="stat-value">{data.length}</p>
           </div>
           <div className="stat-card">
             <p className="stat-label">Latest Year</p>
-            <p className="stat-value">{data[data.length - 1]?.year || 'N/A'}</p>
+            <p className="stat-value">FY {data[data.length - 1]?.year || 'N/A'}</p>
           </div>
           <div className="stat-card">
-            <p className="stat-label">Latest Avg Market Cap</p>
-            <p className="stat-value">{data[data.length - 1] ? formatMarketCap(data[data.length - 1].marketCap) : 'N/A'}</p>
+            <p className="stat-label">Latest Assets</p>
+            <p className="stat-value">{data[data.length - 1] ? formatAssets(data[data.length - 1].totalAssets) : 'N/A'}</p>
           </div>
+          {growth && (
+            <div className="stat-card">
+              <p className="stat-label">Growth ({data[0]?.year} - {data[data.length - 1]?.year})</p>
+              <p className="stat-value" style={{ color: parseFloat(growth) >= 0 ? '#22c55e' : '#ef4444' }}>
+                {growth > 0 ? '+' : ''}{growth}%
+              </p>
+            </div>
+          )}
         </div>
       </div>
       
@@ -220,12 +218,12 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
           padding: 40px;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
           min-height: 600px;
-          border: 1px solid rgba(34, 197, 94, 0.2);
+          border: 1px solid rgba(59, 130, 246, 0.2);
         }
         
         .header {
           margin-bottom: 30px;
-          border-bottom: 2px solid #22c55e;
+          border-bottom: 2px solid #3b82f6;
           padding-bottom: 20px;
         }
         
@@ -235,7 +233,7 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
           font-weight: 700;
           margin: 0 0 8px 0;
           letter-spacing: -0.5px;
-          text-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
+          text-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
         }
         
         .subtitle {
@@ -258,22 +256,28 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
         
         .stats-container {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
           gap: 20px;
           margin-top: 20px;
         }
         
         .stat-card {
-          background: rgba(34, 197, 94, 0.1);
-          border: 1px solid rgba(34, 197, 94, 0.3);
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.3);
           border-radius: 12px;
           padding: 20px;
           text-align: center;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
         
         .stat-label {
           color: #94a3b8;
-          font-size: 13px;
+          font-size: 12px;
           margin: 0 0 8px 0;
           text-transform: uppercase;
           letter-spacing: 1px;
@@ -281,15 +285,15 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
         }
         
         .stat-value {
-          color: #22c55e;
-          font-size: 24px;
+          color: #3b82f6;
+          font-size: 22px;
           margin: 0;
           font-weight: 700;
         }
         
         .custom-tooltip {
           background: rgba(15, 23, 42, 0.98);
-          border: 2px solid #22c55e;
+          border: 2px solid #3b82f6;
           border-radius: 12px;
           padding: 16px 20px;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -303,7 +307,7 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
         }
         
         .tooltip-value {
-          color: #22c55e;
+          color: #3b82f6;
           font-size: 15px;
           font-weight: 600;
           margin: 0;
@@ -320,8 +324,8 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
         .spinner {
           width: 60px;
           height: 60px;
-          border: 5px solid rgba(34, 197, 94, 0.2);
-          border-top: 5px solid #22c55e;
+          border: 5px solid rgba(59, 130, 246, 0.2);
+          border-top: 5px solid #3b82f6;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -362,7 +366,7 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
         }
         
         .retry-button {
-          background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
           color: #ffffff;
           border: none;
           border-radius: 10px;
@@ -371,14 +375,14 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s ease;
-          box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+          box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
         
         .retry-button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 24px rgba(34, 197, 94, 0.6);
+          box-shadow: 0 6px 24px rgba(59, 130, 246, 0.6);
         }
         
         @keyframes spin {
@@ -401,7 +405,7 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
           }
           
           .stats-container {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
           }
         }
         
@@ -413,10 +417,14 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
           .chart-container {
             height: 300px;
           }
+          
+          .stats-container {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </div>
   );
 };
 
-export default MarketCapChart;
+export default TotalAssetsChart;
