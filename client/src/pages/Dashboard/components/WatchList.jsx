@@ -3,6 +3,7 @@ import { ContextApi } from "@/context/ContextApi";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
 import TradingViewWidget from "@/pages/Dashboard/components/TradingViewWidget";
 import ViewNews from "@/pages/Dashboard/components/ViewNews";
+import CompanyAnalysis from "@/pages/Dashboard/components/CompanyAnalysis";
 
 import {
   Tooltip,
@@ -125,6 +126,7 @@ const WatchListActions = ({ uid, data ,symbol }) => {
   const { handleOpenBuyWindow } = useContext(GeneralContext);
   const [showChart, setShowChart] = useState(false);
   const [showNews, setShowNews] = useState(false);
+  const [showBalanceSheet, setShowBalanceSheet] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleBuyClick = () => handleOpenBuyWindow(uid, data);
@@ -139,8 +141,11 @@ const WatchListActions = ({ uid, data ,symbol }) => {
   const handleCloseMore = () => setAnchorEl(null);
 
   const viewAnalysis = () => {
-    window.open(`/company_analysis?symbol=${symbol}`, "_blank");
-  }
+    setShowBalanceSheet(true);
+    setAnchorEl(null); // Close the menu
+  };
+
+  const handleCloseBalanceSheet = () => setShowBalanceSheet(false);
 
   return (
     <>
@@ -332,6 +337,51 @@ const WatchListActions = ({ uid, data ,symbol }) => {
           <div style={{ height: "calc(80vh - 80px)", width: "100%" }}>
             <TradingViewWidget symbol={data.symbol} />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* === BALANCE SHEET DIALOG === */}
+      <Dialog
+        open={showBalanceSheet}
+        onClose={handleCloseBalanceSheet}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          style: {
+            minHeight: "80vh",
+            maxHeight: "90vh",
+          },
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "16px 24px",
+            borderBottom: "1px solid #e0e0e0",
+          }}
+        >
+          <div>
+            <span style={{ fontSize: "20px", fontWeight: "600" }}>
+              Balance Sheet - {data.name}
+            </span>
+            <span
+              style={{
+                marginLeft: "16px",
+                fontSize: "14px",
+                color: "#666",
+              }}
+            >
+              ({symbol})
+            </span>
+          </div>
+          <IconButton onClick={handleCloseBalanceSheet} size="small">
+            <CloseIcon />
+          </IconButton>
+        </div>
+        <DialogContent style={{ padding: "24px" }}>
+          <CompanyAnalysis symbol={symbol} />
         </DialogContent>
       </Dialog>
 
