@@ -25,12 +25,12 @@ const calculateSettlementDate = () => {
   return settlementDate;
 };
 
-// Helper: Check market hours (9:15 – 3:30 IST)
-const isWithinMarketHours = () => {
-  const now = new Date();
-  const timeInMinutes = now.getHours() * 60 + now.getMinutes();
-  return timeInMinutes >= 555 && timeInMinutes <= 930;
-};
+// // Helper: Check market hours (9:15 – 3:30 IST)
+// const isWithinMarketHours = () => {
+//   const now = new Date();
+//   const timeInMinutes = now.getHours() * 60 + now.getMinutes();
+//   return timeInMinutes >= 555 && timeInMinutes <= 930;
+// };
 
 // ✅ Create Order Controller
 export const createOrder = async (req, res) => {
@@ -90,9 +90,19 @@ export const createOrder = async (req, res) => {
 
     // ✅ Currency conversion
     const usdInrRate = await getUsdInrRate();
-    const requiredAmountInInr = currency.toUpperCase() === "USD"
+    const baseAmountInInr = currency.toUpperCase() === "USD"
       ? totalAmount * usdInrRate
       : totalAmount;
+
+    // ✅ Calculate margin requirement based on order type
+    // For INTRADAY: 2x margin (50% of total value)
+    // For DELIVERY and FNO: Full amount required
+    let requiredAmountInInr;
+    if (orderType === "INTRADAY") {
+      requiredAmountInInr = baseAmountInInr * 0.5; // 50% margin for 2x buying power
+    } else {
+      requiredAmountInInr = baseAmountInInr; // Full amount for other order types
+    }
 
     // ✅ Balance check
     if (user.balance < requiredAmountInInr) {
@@ -106,13 +116,13 @@ export const createOrder = async (req, res) => {
     }
 
     // // ✅ Intraday validation
-    if (orderType === "INTRADAY" && !isWithinMarketHours()) {
-      await session.abortTransaction();
-      await session.endSession();
-      return res.status(400).json({
-        message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
-      });
-    }
+    // if (orderType === "INTRADAY" && !isWithinMarketHours()) {
+    //   await session.abortTransaction();
+    //   await session.endSession();
+    //   return res.status(400).json({
+    //     message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
+    //   });
+    // }
 
     // ✅ Base order object
     const baseOrder = {

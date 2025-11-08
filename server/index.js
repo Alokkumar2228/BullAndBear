@@ -12,6 +12,7 @@ import paymentRouter from "./routes/paymentRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import financialRouter from "./routes/financialRoute.js";
 
+
 const app = express();
 const PORT = process.env.PORT || 8000;
 
@@ -181,3 +182,4 @@ app.use("/api/financial", financialRouter);
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
+
