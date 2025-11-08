@@ -6,8 +6,14 @@ import {
     getBalanceSheet,
     getCashFlow,
     getIncomeStatementReported,
+    saveDailyPLHoldings,
+    getDailyPLHoldingsHistory,
+    saveDailyPLPositions,
+    getDailyPLPositionsHistory,
+    saveDailyPLCombined,
+    getDailyPLCombinedHistory,
 } from '../controllers/financialController.js';
-// import clerkAuth from '../middleware/clerkAuth.js';
+import { clerkAuth } from '../middleware/clerkAuth.js';
 
 const router = express.Router();
 // app.use(clerkAuth); 
@@ -20,6 +26,19 @@ router.get('/market-cap/:symbol', getMarketCap);             // Market Capitaliz
 router.get('/balance-sheet/:symbol', getBalanceSheet);       // Balance Sheet Statement
 router.get('/cash-flow/:symbol', getCashFlow);               // Cash Flow Statement
 router.get('/income-reported/:symbol', getIncomeStatementReported); // Income Statement As Reported
+
+// Daily P&L endpoints (protected) - separate collections for holdings and positions            
+router.get('/daily-pl', clerkAuth, getDailyPLCombinedHistory);
+router.post('/daily-pl', clerkAuth, saveDailyPLCombined);
+
+router.get('/daily-pl/holdings', clerkAuth, getDailyPLHoldingsHistory);
+router.post('/daily-pl/holdings', clerkAuth, saveDailyPLHoldings);  
+
+router.get('/daily-pl/positions', clerkAuth, getDailyPLPositionsHistory);
+router.post('/daily-pl/positions', clerkAuth, saveDailyPLPositions);
+
+
+
 
 export default router;
 

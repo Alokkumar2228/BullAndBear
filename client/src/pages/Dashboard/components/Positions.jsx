@@ -11,7 +11,7 @@ const Positions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSelling, setIsSelling] = useState(false);
-  const { handleSellStock } = useContext(GeneralContext);
+  const { handleSellStock, saveDailyPL } = useContext(GeneralContext);
   const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
   const { getToken } = useAuth();
 
@@ -97,6 +97,22 @@ const Positions = () => {
   const profitPercentage = totalInvestment
     ? ((profit / totalInvestment) * 100).toFixed(2)
     : 0;
+
+  // Save daily P&L when calculated (will upsert on server). Skips while loading or on error.
+  useEffect(() => {
+    (async () => {
+      try {
+        if (loading || error) return;
+        const pl = Number(profit);
+        if (!Number.isFinite(pl)) return;
+  const date = new Date().toISOString().slice(0, 10);
+  // save under 'positions' category so it doesn't overwrite other categories
+  await saveDailyPL(pl, date, 'positions');
+      } catch (err) {
+        console.error('saveDailyPL (Positions) failed', err);
+      }
+    })();
+  }, [profit, loading, error, saveDailyPL]);
 
   return (
     <div style={{ padding: "20px" }}>

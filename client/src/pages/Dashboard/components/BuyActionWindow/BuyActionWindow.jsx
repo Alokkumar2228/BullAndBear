@@ -1,5 +1,4 @@
 import React, { useState, useContext } from "react";
-import { Link } from "react-router-dom";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
@@ -7,16 +6,14 @@ import "./BuyActionWindow.css";
 import { toast } from 'react-toastify';
 
 const BuyActionWindow = ({ data }) => {
-  const { handleCloseBuyWindow } = useContext(GeneralContext);
+  const { handleCloseBuyWindow, findTransactionData, findUserFundsData, userFundData } = useContext(GeneralContext);
   const [stockQuantity, setStockQuantity] = useState(1);
   const [stockPrice, setStockPrice] = useState(data?.price || 0.0);
   const currency = "USD";
   const [orderType, setOrderType] = useState("DELIVERY");
   const [orderMode, setOrderMode] = useState("MARKET");
-  const {findTransactionData ,findUserFundsData} = useContext(GeneralContext);
 
   const BASE_URL = import.meta.env.VITE_BASE_URL
-
 
   const orderTypes = [
     { value: "INTRADAY", label: "Intraday" },
@@ -24,27 +21,27 @@ const BuyActionWindow = ({ data }) => {
     { value: "FNO", label: "F&O" },
   ];
 
-  // Market hours check (9:15 AM to 3:30 PM IST, Monday to Friday)
-  const isMarketOpen = () => {
-    const now = new Date();
-    const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+  // // Market hours check (9:15 AM to 3:30 PM IST, Monday to Friday)
+  // const isMarketOpen = () => {
+  //   const now = new Date();
+  //   const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
 
-    const day = istTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    const hours = istTime.getHours();
-    const minutes = istTime.getMinutes();
-    const currentTime = hours * 60 + minutes;
+  //   const day = istTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  //   const hours = istTime.getHours();
+  //   const minutes = istTime.getMinutes();
+  //   const currentTime = hours * 60 + minutes;
 
-    // Market is closed on weekends
-    if (day === 0 || day === 6) {
-      return false;
-    }
+  //   // Market is closed on weekends
+  //   if (day === 0 || day === 6) {
+  //     return false;
+  //   }
 
-    // Market hours: 9:15 AM (555 minutes) to 3:30 PM (930 minutes)
-    const marketOpenTime = 9 * 60 + 15; // 9:15 AM
-    const marketCloseTime = 15 * 60 + 30; // 3:30 PM
+  //   // Market hours: 9:15 AM (555 minutes) to 3:30 PM (930 minutes)
+  //   const marketOpenTime = 9 * 60 + 15; // 9:15 AM
+  //   const marketCloseTime = 15 * 60 + 30; // 3:30 PM
 
-    return currentTime >= marketOpenTime && currentTime <= marketCloseTime;
-  };
+  //   return currentTime >= marketOpenTime && currentTime <= marketCloseTime;
+  // };
 
   const [marketError, setMarketError] = useState("");
 
@@ -65,73 +62,118 @@ const BuyActionWindow = ({ data }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Check if order type is allowed based on market hours
-  const isOrderTypeAllowed = () => {
-    if (orderType === "INTRADAY" || orderType === "DELIVERY" || orderType === "FNO") {
-      return isMarketOpen();
+  // Calculate required amount and buying power
+  const getMarginInfo = () => {
+    // displayedTotal uses the price shown in the input (stockPrice)
+    const displayedTotal = Number(stockQuantity) * Number(stockPrice || 0);
+
+
+    // User available balance (fallback to 0)
+    const availableBalance = Number(userFundData?.balance || 0);
+
+    if (orderType === "INTRADAY") {
+      // Platform margin: 50% (2x buying power)
+      const marginPercent = 0.5;
+
+      // The amount user must put up now (based on displayed/margin price)
+      const requiredAmount = displayedTotal; // stockPrice should already reflect margin price for INTRADAY
+
+      // Buying power expressed as the total market value user can control with their balance
+      const buyingPowerValue = availableBalance / marginPercent; // e.g., balance * 2 for 50% margin
+
+      // Max quantity the user could buy at actual market price using full buying power
+      const maxQuantityByFunds = data.price ? Math.floor(buyingPowerValue / Number(data.price)) : 0;
+
+      const insufficientFunds = requiredAmount > availableBalance;
+
+      return {
+        requiredAmount,
+        buyingPower: buyingPowerValue,
+        availableBalance,
+        marginText: `${currency === "USD" ? "$" : "₹"}${requiredAmount.toFixed(2)}`,
+        buyingPowerText: `Buying Power (2x): ${currency === "USD" ? "$" : "₹"}${buyingPowerValue.toFixed(2)} (Max Qty: ${maxQuantityByFunds})`,
+        insufficientFunds,
+      };
     }
-    return true;
+
+    return {
+      requiredAmount: displayedTotal,
+      // Only INTRADAY should expose buyingPower; for DELIVERY/FNO hide it by returning null
+      buyingPower: null,
+      availableBalance,
+      marginText: `${currency === "USD" ? "$" : "₹"}${displayedTotal.toFixed(2)}`,
+      buyingPowerText: null,
+      insufficientFunds: displayedTotal > availableBalance,
+    };
   };
 
-  // Get market status message
-  const getMarketStatusMessage = () => {
-    if ((orderType === "INTRADAY" || orderType === "DELIVERY" || orderType === "FNO") && !isMarketOpen()) {
-      const now = new Date();
-      const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-      const day = istTime.getDay();
+  // // Check if order type is allowed based on market hours
+  // const isOrderTypeAllowed = () => {
+  //   if (orderType === "INTRADAY" || orderType === "DELIVERY" || orderType === "FNO") {
+  //     return isMarketOpen();
+  //   }
+  //   return true;
+  // };
 
-      const orderTypeLabel = orderType === "INTRADAY" ? "Intraday" : orderType === "DELIVERY" ? "Delivery" : "F&O";
+  // // Get market status message
+  // const getMarketStatusMessage = () => {
+  //   if ((orderType === "INTRADAY" || orderType === "DELIVERY" || orderType === "FNO") && !isMarketOpen()) {
+  //     const now = new Date();
+  //     const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+  //     const day = istTime.getDay();
 
-      if (day === 0 || day === 6) {
-        return `${orderTypeLabel} orders are not available on weekends. Market is closed.`;
-      } else {
-        return `${orderTypeLabel} orders are only available during market hours (9:15 AM - 3:30 PM IST).`;
-      }
-    }
-    return "";
-  };
+  //     const orderTypeLabel = orderType === "INTRADAY" ? "Intraday" : orderType === "DELIVERY" ? "Delivery" : "F&O";
+
+  //     if (day === 0 || day === 6) {
+  //       return `${orderTypeLabel} orders are not available on weekends. Market is closed.`;
+  //     } else {
+  //       return `${orderTypeLabel} orders are only available during market hours (9:15 AM - 3:30 PM IST).`;
+  //     }
+  //   }
+  //   return "";
+  // };
 
   // Get valuable market info message
-  const getMarketInfoMessage = () => {
-    if (
-      orderType === "INTRADAY" ||
-      orderType === "DELIVERY" ||
-      orderType === "FNO"
-    ) {
-      const now = new Date();
-      const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-      const day = istTime.getDay();
-      const hours = istTime.getHours();
-      const minutes = istTime.getMinutes();
-      const currentTime = hours * 60 + minutes;
-      const orderTypeLabel = orderType === "INTRADAY" ? "Intraday" : orderType === "DELIVERY" ? "Delivery" : "F&O";
-      if (isMarketOpen()) {
-        const closeTime = 15 * 60 + 30; // 3:30 PM
-        const remainingMinutes = closeTime - currentTime;
-        const remainingHours = Math.floor(remainingMinutes / 60);
-        const remainingMins = remainingMinutes % 60;
-        return `🟢 Market is OPEN - ${orderTypeLabel} orders available (${remainingHours}h ${remainingMins}m until closing at 3:30 PM)`;
-      } else if (day === 0 || day === 6) {
-        // Weekend - show next Monday opening
-        const daysUntilMonday = day === 0 ? 1 : 2; // Sunday=0, Saturday=6
-        return `🔴 Market CLOSED (Weekend) - ${orderTypeLabel} orders unavailable until Monday 9:15 AM (${daysUntilMonday} day${daysUntilMonday > 1 ? 's' : ''} away)`;
-      } else {
-        // Weekday but outside market hours
-        if (currentTime < 9 * 60 + 15) {
-          // Before market opens
-          const openTime = 9 * 60 + 15;
-          const minutesUntilOpen = openTime - currentTime;
-          const hoursUntilOpen = Math.floor(minutesUntilOpen / 60);
-          const minsUntilOpen = minutesUntilOpen % 60;
-          return `🔴 Market CLOSED - ${orderTypeLabel} orders unavailable until ${hoursUntilOpen}h ${minsUntilOpen}m (opens 9:15 AM)`;
-        } else {
-          // After market closes
-          return `🔴 Market CLOSED - ${orderTypeLabel} orders unavailable until tomorrow 9:15 AM`;
-        }
-      }
-    }
-    return "";
-  };
+  // const getMarketInfoMessage = () => {
+  //   if (
+  //     orderType === "INTRADAY" ||
+  //     orderType === "DELIVERY" ||
+  //     orderType === "FNO"
+  //   ) {
+  //     const now = new Date();
+  //     const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+  //     const day = istTime.getDay();
+  //     const hours = istTime.getHours();
+  //     const minutes = istTime.getMinutes();
+  //     const currentTime = hours * 60 + minutes;
+  //     const orderTypeLabel = orderType === "INTRADAY" ? "Intraday" : orderType === "DELIVERY" ? "Delivery" : "F&O";
+  //     if (isMarketOpen()) {
+  //       const closeTime = 15 * 60 + 30; // 3:30 PM
+  //       const remainingMinutes = closeTime - currentTime;
+  //       const remainingHours = Math.floor(remainingMinutes / 60);
+  //       const remainingMins = remainingMinutes % 60;
+  //       return `🟢 Market is OPEN - ${orderTypeLabel} orders available (${remainingHours}h ${remainingMins}m until closing at 3:30 PM)`;
+  //     } else if (day === 0 || day === 6) {
+  //       // Weekend - show next Monday opening
+  //       const daysUntilMonday = day === 0 ? 1 : 2; // Sunday=0, Saturday=6
+  //       return `🔴 Market CLOSED (Weekend) - ${orderTypeLabel} orders unavailable until Monday 9:15 AM (${daysUntilMonday} day${daysUntilMonday > 1 ? 's' : ''} away)`;
+  //     } else {
+  //       // Weekday but outside market hours
+  //       if (currentTime < 9 * 60 + 15) {
+  //         // Before market opens
+  //         const openTime = 9 * 60 + 15;
+  //         const minutesUntilOpen = openTime - currentTime;
+  //         const hoursUntilOpen = Math.floor(minutesUntilOpen / 60);
+  //         const minsUntilOpen = minutesUntilOpen % 60;
+  //         return `🔴 Market CLOSED - ${orderTypeLabel} orders unavailable until ${hoursUntilOpen}h ${minsUntilOpen}m (opens 9:15 AM)`;
+  //       } else {
+  //         // After market closes
+  //         return `🔴 Market CLOSED - ${orderTypeLabel} orders unavailable until tomorrow 9:15 AM`;
+  //       }
+  //     }
+  //   }
+  //   return "";
+  // };
 
   const createOrder = async () => {
     try {
@@ -139,12 +181,12 @@ const BuyActionWindow = ({ data }) => {
       setError(null);
       setMarketError("");
 
-      // // Check market hours restriction for all order types
-      if (!isOrderTypeAllowed()) {
-        setMarketError(getMarketStatusMessage());
-        setIsLoading(false);
-        return;
-      }
+      // // // Check market hours restriction for all order types
+      // if (!isOrderTypeAllowed()) {
+      //   setMarketError(getMarketStatusMessage());
+      //   setIsLoading(false);
+      //   return;
+      // }
 
       const authToken = await getToken();
       if (!authToken) {
@@ -240,7 +282,20 @@ const BuyActionWindow = ({ data }) => {
                 name="orderType"
                 value={type.value}
                 checked={orderType === type.value}
-                onChange={(e) => setOrderType(e.target.value)}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  // Clear any previous error/market messages when switching order type
+                  setError(null);
+                  setMarketError("");
+                  setOrderType(newType);
+                  // If user selects INTRADAY, show intraday margin price (50% of actual price)
+                  if (newType === "INTRADAY") {
+                    setStockPrice(Number(data.price) * 0.5);
+                  } else {
+                    // For DELIVERY or FNO show full price
+                    setStockPrice(Number(data.price));
+                  }
+                }}
               />
               {type.label}
             </label>
@@ -283,7 +338,12 @@ const BuyActionWindow = ({ data }) => {
               checked={orderMode === "MARKET"}
               onChange={() => {
                 setOrderMode("MARKET");
-                setStockPrice(data.price);
+                // When switching to MARKET, set price according to current orderType
+                if (orderType === "INTRADAY") {
+                  setStockPrice(Number(data.price) * 0.5);
+                } else {
+                  setStockPrice(Number(data.price));
+                }
               }}
 
             />
@@ -306,19 +366,42 @@ const BuyActionWindow = ({ data }) => {
           {marketError && (
             <div className="market-error-message">{marketError}</div>
           )}
-          {getMarketInfoMessage() && (
+          {/* {getMarketInfoMessage() && (
             <div className="market-info-message">{getMarketInfoMessage()}</div>
-          )}
-          <span className="margin-text">
-            {currency === "USD" ? "Margin (USD): $" : "Margin (INR): ₹"}
-            {(Number(stockQuantity) * Number(stockPrice) * 0.2).toFixed(2)}
-          </span>
+          )} */}
+          {(() => {
+            const marginInfo = getMarginInfo();
+            return (
+              <>
+                {/* If intraday (buyingPower available) show amount on left and label on right */}
+                <div style={{ width: '100%' }}>
+                  <div className="margin-text" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <span style={{ color: '#2563eb', fontWeight: 600 }}>{orderType === 'INTRADAY' ? 'Margin (2x)' : 'Total'}</span>
+                    <strong style={{ color: '#000' }}>{marginInfo.marginText}</strong>
+                  </div>
+                  {/* {marginInfo.buyingPower != null && (
+                    <div className="buying-power-text" style={{ fontSize: '0.9em', marginTop: 6, color: '#111' }}>{marginInfo.buyingPowerText}</div>
+                  )} */}
+                  {/* {marginInfo.insufficientFunds && (
+                    <div className="insufficient-funds" style={{ color: '#b91c1c', fontSize: '12px', marginTop: 6 }}>
+                      Insufficient funds: required {currency === 'USD' ? '$' : '₹'}{Number(marginInfo.requiredAmount).toFixed(2)} — available {currency === 'USD' ? '$' : '₹'}{Number(marginInfo.availableBalance).toFixed(2)}
+                    </div>
+                  )} */}
+                </div>
+              </>
+            );
+          })()}
+          {/* {orderType === "INTRADAY" && (
+            <div className="market-info-message" style={{ fontSize: '12px', backgroundColor: '#e0e7ff', borderColor: '#6366f1' }}>
+              💡 Intraday trades get 2x buying power with 50% margin
+            </div>
+          )} */}
 
           <div className="action-buttons">
             <button
-              className={`buy-btn ${isLoading ? "loading" : ""} ${!isOrderTypeAllowed() ? "disabled" : ""} `}
+              className={`buy-btn ${isLoading ? "loading" : ""} `}   //${!isOrderTypeAllowed() ? "disabled" : ""}
               onClick={handleBuyClick}
-               disabled={isLoading || !stockQuantity || !stockPrice || !isOrderTypeAllowed()}
+               disabled={isLoading || !stockQuantity || !stockPrice}  //|| !isOrderTypeAllowed()}
             >
               {isLoading ? "Placing Order..." : "Buy"}
             </button>
