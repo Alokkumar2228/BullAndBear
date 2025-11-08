@@ -4,6 +4,8 @@ import DailyPL from "../models/DailyPLModel.js";
 import DailyPLHoldings from "../models/DailyPLHoldingsModel.js";
 import DailyPLPositions from "../models/DailyPLPositionsModel.js";
 
+
+
 const API_KEY = "lX94JNVaadFWz8MO8ySstPu02wNHYJFF";
 const BASE_URL = "https://financialmodelingprep.com/stable";
 
@@ -26,7 +28,7 @@ export const getKeyMetrics = async (req, res) => {
         shareholdersEquity: item.investedCapital || null,
       };
     });
-    res.status(200).json(filtered);
+    res.status(200).json({success:true, data: filtered });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -39,7 +41,7 @@ export const getFinancialScores = async (req, res) => {
     const response = await axios.get(
       `${BASE_URL}/financial-scores?symbol=${symbol}&apikey=${API_KEY}`
     );
-    res.json(response.data);
+    res.json({success:true, data: response.data });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -52,9 +54,9 @@ export const getMarketCap = async (req, res) => {
     const response = await axios.get(
       `${BASE_URL}/historical-market-capitalization?symbol=${symbol}&apikey=${API_KEY}`
     );
-    res.json(response.data);
+    res.json({success:true, data: response.data });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({success:false , error: error.message });
   }
 };
 
@@ -78,7 +80,7 @@ export const getBalanceSheet = async (req, res) => {
         netDebt: item.netDebt,
       };
     });
-    res.json(data);
+    res.json({success:true , data:data});
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -104,7 +106,7 @@ export const getCashFlow = async (req, res) => {
       netDebtChange: item.netDebtIssuance,
     }));
 
-    res.json(filteredData);
+    res.json({success:true, data: filteredData});
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -121,7 +123,7 @@ export const getIncomeStatementReported = async (req, res) => {
       fiscalYear: item.fiscalYear,
       netProfit: item.data.grossprofit,
     }));
-    res.json(filteredData);
+    res.json({success:true, data: filteredData});
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
