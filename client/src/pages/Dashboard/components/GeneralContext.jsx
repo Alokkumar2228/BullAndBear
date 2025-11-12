@@ -64,30 +64,15 @@ const findTransactionData = useCallback(async () => {
 
   // Save daily P&L for the authenticated user
   const saveDailyPL = useCallback(
-    async (totalPL, dateStr, category) => {
+    async (totalPL, dateStr) => {
       try {
         const authToken = await getToken();
-        // dateStr expected as 'YYYY-MM-DD' (optional)
-        const payload = { totalPL };
+        const payload = { totalPL : totalPL };
         if (dateStr) payload.date = dateStr;
-        if (category) payload.category = category;
-
-        // Simple local de-duplication: if we've already saved the exact same value for today, skip
-        try {
-          const today = dateStr || new Date().toISOString().slice(0, 10);
-          const key = `dailyPL_last_${category || 'combined'}`;
-          const last = JSON.parse(localStorage.getItem(key) || '{}' );
-          if (last?.date === today && Number(last?.totalPL) === Number(totalPL)) {
-            return { skipped: true };
-          }
-        } catch (err) {
-          // ignore localStorage parse errors
-        }
+        console.log('saveDailyPL payload', payload);
 
         // Choose endpoint per-category (server exposes separate routes)
-        let endpoint = `${BASE_URL}/api/financial/daily-pl`;
-        if (category === 'holdings') endpoint = `${BASE_URL}/api/financial/daily-pl/holdings`;
-        else if (category === 'positions') endpoint = `${BASE_URL}/api/financial/daily-pl/positions`;
+        let endpoint = `${BASE_URL}/api/financial/daily-pl/holdings`;
 
         const response = await axios.post(endpoint, payload, {
           headers: {
@@ -95,16 +80,6 @@ const findTransactionData = useCallback(async () => {
             'Content-Type': 'application/json',
           },
         });
-
-        // update local cache per-category
-        try {
-          const savedDate = payload.date || new Date().toISOString().slice(0, 10);
-          const key = `dailyPL_last_${payload.category || 'combined'}`;
-          localStorage.setItem(key, JSON.stringify({ date: savedDate, totalPL }));
-        } catch (err) {
-          /* ignore */
-        }
-
         return response.data;
       } catch (error) {
         console.error('saveDailyPL error', error);

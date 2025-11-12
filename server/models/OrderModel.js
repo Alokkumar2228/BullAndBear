@@ -75,6 +75,10 @@ const orderSchema = new mongoose.Schema({
   totalAmount: {
     type: Number,
     required: true
+  },
+  orderMode: {
+    type: String,
+    enum: ["MARKET", "LIMIT"],
   }
 });
 

@@ -1,8 +1,6 @@
 import axios from "axios";
 import yahooFinance from "yahoo-finance2";
-import DailyPL from "../models/DailyPLModel.js";
 import DailyPLHoldings from "../models/DailyPLHoldingsModel.js";
-import DailyPLPositions from "../models/DailyPLPositionsModel.js";
 
 const API_KEY = "FxQSoUy8VIDJ6FtgkyzHvAHAUzOsGHx0";
 const BASE_URL = "https://financialmodelingprep.com/stable";
@@ -126,4 +124,44 @@ export const getIncomeStatementReported = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Save holdings daily P&L (upsert)
+export const saveDailyPLHoldings = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.body.user_id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { date: dateStr, totalPL } = req.body;
+    const plNum = typeof totalPL === 'number' ? totalPL : Number(totalPL);
+    if (!Number.isFinite(plNum)) return res.status(400).json({ error: 'totalPL must be a number' });
+
+    const date = dateStr ? new Date(dateStr).toISOString().split('T')[0] :  new Date().toISOString().split('T')[0];
+
+    const doc = await DailyPLHoldings.findOneAndUpdate(
+      { user_id: userId, date: date },
+      {$set: { totalPL: plNum } },
+      { upsert: true, new: true} ////options: create if not found , return updated doc
+    );
+
+    res.status(200).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('saveDailyPLHoldings error', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Get holdings history
+export const getDailyPLHoldingsHistory = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const rows = await DailyPLHoldings.find({ user_id: userId }).sort({ date: 1 }).lean();
+    res.status(200).json({ success: true, data: rows });
+  } catch (err) {
+    console.error('getDailyPLHoldingsHistory error', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
