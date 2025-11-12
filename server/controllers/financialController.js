@@ -2,7 +2,7 @@ import axios from "axios";
 import yahooFinance from "yahoo-finance2";
 import DailyPLHoldings from "../models/DailyPLHoldingsModel.js";
 
-const API_KEY = "lX94JNVaadFWz8MO8ySstPu02wNHYJFF";
+const API_KEY = "FxQSoUy8VIDJ6FtgkyzHvAHAUzOsGHx0";
 const BASE_URL = "https://financialmodelingprep.com/stable";
 
 // 1. Key Metrics
@@ -43,7 +43,7 @@ export const getFinancialScores = async (req, res) => {
   }
 };
 
-// 4. Historical Market Capitalization
+// 3. Historical Market Capitalization
 export const getMarketCap = async (req, res) => {
   const { symbol } = req.params;
   try {
@@ -56,7 +56,7 @@ export const getMarketCap = async (req, res) => {
   }
 };
 
-// 5. Balance Sheet Statement
+// 4. Balance Sheet Statement
 export const getBalanceSheet = async (req, res) => {
   const { symbol } = req.params;
   try {
@@ -82,7 +82,7 @@ export const getBalanceSheet = async (req, res) => {
   }
 };
 
-// 6. Cash Flow Statement
+// 5. Cash Flow Statement
 export const getCashFlow = async (req, res) => {
   const { symbol } = req.params;
   try {
@@ -108,7 +108,7 @@ export const getCashFlow = async (req, res) => {
   }
 };
 
-// 7. Income Statement As Reported
+// 6. Income Statement As Reported
 export const getIncomeStatementReported = async (req, res) => {
   const { symbol } = req.params;
   try {

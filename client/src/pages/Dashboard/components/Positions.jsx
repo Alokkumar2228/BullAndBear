@@ -207,9 +207,11 @@ const Positions = () => {
             </thead>
             <tbody>
               {positions.map((stock, index) => {
+                console.log("stock", stock);
+                
                 const curValue = stock.quantity * stock.actualPrice;
                 const profitValue =
-                  (stock.actualPrice - stock.purchasePrice) * stock.quantity;
+                  (stock.actualPrice - (stock.purchasePrice == stock.actualPrice/2 ? stock.purchasePrice*2: stock.purchasePrice)) * stock.quantity;   
                 const isProfit = profitValue >= 0;
 
                 return (
@@ -219,7 +221,10 @@ const Positions = () => {
                     >{`${stock.symbol} - ${stock.name}`}</td>
                     <td style={{ padding: "8px" }}>{stock.quantity}</td>
                     <td style={{ padding: "8px" }}>
-                      {formatNumber(stock.purchasePrice)}
+                      {formatNumber(stock.orderMode == "LIMIT" ? stock.purchasePrice : stock.actualPrice)}
+                    
+                      
+  
                     </td>
                     <td
                       style={{
@@ -246,12 +251,13 @@ const Positions = () => {
                         color: isProfit ? "green" : "red",
                       }}
                     >
+                      {/* {(stock.orderMode == "LIMIT" ? (((stock.actualPrice - stock.purchasePrice) / (stock.actualPrice)) * 100).toFixed(2) : (stock.actualPrice - (stock.purchasePrice*2)) / (stock.purchasePrice) * 100).toFixed(2)} % */}
                       {(
-                        ((stock.actualPrice - stock.purchasePrice) /
+                        ((stock.actualPrice - (stock.purchasePrice == stock.actualPrice/2 ? stock.purchasePrice*2: stock.purchasePrice)) /
                           stock.purchasePrice) *
                         100
                       ).toFixed(2)}
-                      %
+                      
                     </td>
                     <td
                       style={{

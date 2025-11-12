@@ -203,6 +203,8 @@ const BuyActionWindow = ({ data }) => {
         status: "PENDING",
         placedAt: new Date().toISOString(),
       };
+      console.log("orderPayload", orderPayload);
+      
       const response = await axios.post(
         `${BASE_URL}/api/order/create`,
         orderPayload,

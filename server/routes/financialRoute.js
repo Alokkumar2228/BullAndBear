@@ -29,6 +29,7 @@ router.post('/daily-pl/holdings', clerkAuth ,saveDailyPLHoldings);
 
 
 
+
 export default router;
 
 // Access essential financial metrics for a company with the FMP Financial Key Metrics API. Evaluate revenue, net income, P/E ratio, and more to assess performance and compare it to competitors.
