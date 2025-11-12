@@ -4,8 +4,6 @@ import { useAuth } from "@clerk/clerk-react";
 import "./dashboard.css";
 import { GeneralContext } from "./GeneralContext";
 
-
-
 const Holdings = () => {
   const [holdings, setHoldings] = useState([]);
   const [isSell, setIsSell] = useState(false);
@@ -15,11 +13,11 @@ const Holdings = () => {
   const [error, setError] = useState(null);
   const [isSelling, setIsSelling] = useState(false);
   const { getToken } = useAuth();
-  const { handleSellStock, findUserFundsData, saveDailyPL } = useContext(GeneralContext);
+  const { handleSellStock, findUserFundsData } =
+    useContext(GeneralContext);
   const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
 
-
-  const BASE_URL = import.meta.env.VITE_BASE_URL
+  const BASE_URL = import.meta.env.VITE_BASE_URL;
 
   // Format number utility
   const formatNumber = (num) =>
@@ -76,7 +74,7 @@ const Holdings = () => {
     setIsSelling(true);
     try {
       const res = await handleSellStock(stock, qty);
-    
+
       if (res?.success) {
         await fetchHoldings();
         await await findUserFundsData();
@@ -106,21 +104,20 @@ const Holdings = () => {
     : 0;
 
   // Save daily P&L when calculated (will upsert on server). Skips while loading or on error.
-  useEffect(() => {
-    (async () => {
-      try {
-        if (loading || error) return;
-        const pl = Number(profit);
-        if (!Number.isFinite(pl)) return;
-  const date = new Date().toISOString().slice(0, 10);
-  // save under 'holdings' category so it doesn't overwrite other categories
-  await saveDailyPL(pl, date, 'holdings');
-      } catch (err) {
-        // non-fatal
-        console.error('saveDailyPL (Holdings) failed', err);
-      }
-    })();
-  }, [profit, loading, error, saveDailyPL]);
+  // useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       if (loading || error) return;
+  //       const pl = Number(profit);
+  //       if (!Number.isFinite(pl)) return;
+  //       const date = new Date().toISOString().slice(0, 10);
+  //       await saveDailyPL(pl, date);
+  //     } catch (err) {
+  //       // non-fatal
+  //       console.error("saveDailyPL (Holdings) failed", err);
+  //     }
+  //   })();
+  // }, [profit, loading, error, saveDailyPL]);
 
   return (
     <div style={{ padding: "20px" }}>
@@ -302,7 +299,6 @@ const Holdings = () => {
             marginTop: "20px",
           }}
         >
-
           <div
             style={{
               flex: "1",
@@ -362,9 +358,6 @@ const Holdings = () => {
             <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>P&L</p>
           </div>
         </div>
-
-
-
       )}
 
       {/* Sell Modal */}
