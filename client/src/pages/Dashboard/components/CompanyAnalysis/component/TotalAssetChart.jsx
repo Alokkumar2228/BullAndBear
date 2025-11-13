@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import axios from 'axios';
 
 const TotalAssetsChart = ({ symbol = 'AAPL' }) => {
+   const BASE_URL = import.meta.env.VITE_BASE_URL
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,12 +14,12 @@ const TotalAssetsChart = ({ symbol = 'AAPL' }) => {
         setLoading(true);
 
         
-        const response = await axios.get(`http://localhost:8000/api/financial/balance-sheet/${symbol}`);
+        const response = await axios.get(`${BASE_URL}/api/financial/balance-sheet/${symbol}`);
         if (!response.data.success) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const result = response.data.data;
-        console.log('Fetched data:', result);
+        // console.log('Fetched data:', result);
         
         // const result = mockResponse;
         

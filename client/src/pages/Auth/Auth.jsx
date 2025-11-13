@@ -19,7 +19,7 @@ const Auth = () => {
 
   const handleLogout = async () => {
     await signOut();
-    // console.log("User logged out!");
+   
   }
 
   return (

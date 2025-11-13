@@ -15,7 +15,7 @@ import { useContext } from "react";
 import { GeneralContext } from "./GeneralContext";
 
 const ProfitAndLossGraph = () => {
-  const [selectedView, setSelectedView] = useState("Holdings");
+  const selectedView = "Holdings"; 
   const [holdingsData, setHoldingsData] = useState([]);
   const [positionsData, setPositionsData] = useState([]);
   const [dailyPLHistory, setDailyPLHistory] = useState([]);
@@ -106,36 +106,6 @@ const ProfitAndLossGraph = () => {
     }
   }, [getToken, BASE_URL]);
 
-  // Fetch data on component mount
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     setLoading(true);
-  //     setError(null);
-  //     await Promise.all([fetchHoldings(), fetchPositions()]);
-  //     const totalInvestment = holdingsData.reduce(
-  //       (sum, stock) => sum + (stock.totalAmount || 0),
-  //       0
-  //     );
-  //     const currentValue = holdingsData.reduce(
-  //       (sum, stock) => sum + stock.quantity * stock.actualPrice,
-  //       0
-  //     );
-  //     const profit = currentValue - totalInvestment;
-  //     const pl = Number(profit);
-  //     const date = new Date().toISOString().slice(0, 10);
-  //     await saveDailyPL(pl, date);
-  //     await fetchDailyPL();
-
-  //     setLoading(false);
-  //   };
-
-  //   fetchData();
-
-  //   // Auto-refresh every 60 seconds
-  //   const interval = setInterval(fetchData, 60000);
-  //   return () => clearInterval(interval);
-  // }, [fetchHoldings, fetchPositions, fetchDailyPL]);
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -146,8 +116,7 @@ const ProfitAndLossGraph = () => {
           fetchPositions(),
         ]);
 
-        // console.log("HoldingsResponse:", holdingsResponse);
-        // console.log("PositionResponse:", positionResponse);
+     
 
         const holdingsArray =
           holdingsResponse && Array.isArray(holdingsResponse)
@@ -158,13 +127,13 @@ const ProfitAndLossGraph = () => {
           (sum, stock) => sum + (stock.totalAmount || 0),
           0
         );
-        // console.log("TotalInvestment", totalInvestment);
+      
 
         const currentValue = holdingsArray.reduce(
           (sum, stock) => sum + stock.quantity * stock.actualPrice,
           0
         );
-        // console.log("CurrentValue", currentValue);
+        
 
         const profit = currentValue - totalInvestment;
         const pl = Number(profit);
@@ -172,10 +141,9 @@ const ProfitAndLossGraph = () => {
 
         // Save today’s P&L and then fetch history
         await saveDailyPL(pl, date);
-        // console.log("SaveDailyPL Response:", response);
+       
         await fetchDailyPL();
       } catch (error) {
-        // console.error("Error fetching data:", error);
         setError(error.message);
       }
       setLoading(false);
@@ -189,8 +157,6 @@ const ProfitAndLossGraph = () => {
 
   // Build chart data with fallback to zero point
   const chartData = useMemo(() => {
-    console.log("=== CHART DATA CALCULATION ===");
-    console.log("dailyPLHistory:", dailyPLHistory);
 
     // If backend history is available, use that to plot daywise profit
     if (
@@ -514,24 +480,32 @@ const ProfitAndLossGraph = () => {
               Real-time portfolio performance
             </p>
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <select
-              value={selectedView}
-              onChange={(e) => setSelectedView(e.target.value)}
-              style={{
-                background: "#fff",
-                color: "black",
-                padding: "8px 12px",
-                borderRadius: "8px",
-                border: "1px solid #d1d5db",
-                fontSize: "14px",
-              }}
-            >
-              <option value="Holdings">Holdings ({holdingsData.length})</option>
-              {/* <option value="Positions">
-                Positions ({positionsData.length})
-              </option> */}
-            </select>
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "8px",
+            background: "#fff",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            border: "1px solid #e5e7eb"
+          }}>
+            <span style={{ 
+              fontSize: "14px", 
+              fontWeight: "600", 
+              color: "#1f2937" 
+            }}>
+              Holdings
+            </span>
+            <span style={{ 
+              fontSize: "14px", 
+              fontWeight: "500", 
+              color: "#6b7280",
+              background: "#f3f4f6",
+              padding: "2px 8px",
+              borderRadius: "4px"
+            }}>
+              ({holdingsData.length})
+            </span>
           </div>
         </div>
 

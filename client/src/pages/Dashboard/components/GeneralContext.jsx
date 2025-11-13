@@ -69,7 +69,7 @@ const findTransactionData = useCallback(async () => {
         const authToken = await getToken();
         const payload = { totalPL : totalPL };
         if (dateStr) payload.date = dateStr;
-        console.log('saveDailyPL payload', payload);
+       
 
         // Choose endpoint per-category (server exposes separate routes)
         let endpoint = `${BASE_URL}/api/financial/daily-pl/holdings`;
