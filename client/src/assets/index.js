@@ -3,7 +3,7 @@ import consolePng from './console.png';
 import dittoLogo from './dittoLogo.png';
 import ecosystem from './ecosystem.png';
 import education from './education.svg';
-import goldenpiLogo from './goldenpilogo.png';
+import goldenpiLogo from './goldenpiLogo.png';
 import googlePlayBadge from './googlePlayBadge.svg';
 import homeHero from './homeHero.png';
 import intradayTrades from './intradayTrades.svg';
