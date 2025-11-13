@@ -247,7 +247,7 @@ export const getUserOrders = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized: No user ID found" });
     }
    
-    const orders = await Order.find({userId});
+    const orders = await Order.find({ userId }).sort({ executedAt: -1 });
     if (!orders || orders.length === 0) {
       return res.status(404).json({ message: "No orders found for this user" });
     }
@@ -572,7 +572,7 @@ export const sellStock = async (req, res) => {
     }
     session.endSession();
 
-    console.error("❌ sellStock error:", error);
+    console.error("sellStock error:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Internal server error",
