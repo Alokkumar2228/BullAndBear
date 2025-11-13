@@ -528,9 +528,9 @@ const ProfitAndLossGraph = () => {
               }}
             >
               <option value="Holdings">Holdings ({holdingsData.length})</option>
-              <option value="Positions">
+              {/* <option value="Positions">
                 Positions ({positionsData.length})
-              </option>
+              </option> */}
             </select>
           </div>
         </div>
