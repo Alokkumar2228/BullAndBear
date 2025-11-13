@@ -16,7 +16,7 @@ export default function Orders() {
   const fetchOrderData = React.useCallback(async () => {
     setError(null);
     const authToken = await getToken();
-    // console.log("authToken:", authToken);
+
     
     try {
       setLoading(true);
@@ -39,7 +39,7 @@ export default function Orders() {
         });    
         setOrders(filteredOrders);
       } else {
-        // console.log('Setting all orders');
+
         setOrders(response.data.orders || []);
       }
     } catch (err) {
@@ -125,7 +125,7 @@ export default function Orders() {
             style={styles.filterSelect} 
             value={filter} 
             onChange={(e) => {
-              // console.log('Filter changed to:', e.target.value);
+              
               setFilter(e.target.value);
             }}
           >

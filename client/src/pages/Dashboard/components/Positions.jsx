@@ -207,7 +207,7 @@ const Positions = () => {
             </thead>
             <tbody>
               {positions.map((stock, index) => {
-                console.log("stock", stock);
+               
                 
                 const curValue = stock.quantity * stock.actualPrice;
                 const profitValue =

@@ -58,7 +58,7 @@ export const ContextApiProvider = ({ children }) => {
     callAllApi();
   }, []);
 
-//   console.log("NiftySensexData from context", NiftySensexData);
+
 
   return (
     <ContextApi.Provider
