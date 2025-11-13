@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const TotalDebtChart = ({ symbol = 'AAPL' }) => {
+  const BASE_URL = import.meta.env.VITE_BASE_URL
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,7 +12,7 @@ const TotalDebtChart = ({ symbol = 'AAPL' }) => {
       try {
         setLoading(true);
 
-        const response = await fetch(`http://localhost:8000/api/financial/balance-sheet/${symbol}`);
+        const response = await fetch(`${BASE_URL}/api/financial/balance-sheet/${symbol}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

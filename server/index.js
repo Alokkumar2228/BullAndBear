@@ -17,7 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 const allowedOrigins = [
-  "http://localhost:5173",
+  "http://localhost:5173", "https://bull-and-bear.vercel.app",
   ];
   
   app.use(cors({

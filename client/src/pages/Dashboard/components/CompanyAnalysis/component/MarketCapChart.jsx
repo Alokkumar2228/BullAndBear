@@ -31,12 +31,7 @@ const MarketCapChart = ({ symbol = 'AAPL' }) => {
           ]
         };
         
-        // Uncomment this for actual API call:
-        // const response = await axios.get(`http://localhost:8000/api/financial/market-cap/${symbol}`);
-        // if (!response.data.success) {
-        //   throw new Error(`HTTP error! status: ${response.status}`);
-        // }
-        // const result = response.data.data;
+        
         
         const result = mockResponse.data;
         
