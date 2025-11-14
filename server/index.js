@@ -24,7 +24,7 @@ const allowedOrigins = [
   "https://bull-and-bear-232a-git-main-alok-kumar-singhs-projects.vercel.app",
   "https://bullandbear-2.onrender.com"
 ];
-  console.log(yahooFinance);
+
   app.use(cors({
     origin: function (origin, callback) {
       // allow requests with no origin (like mobile apps or curl)
@@ -38,6 +38,7 @@ const allowedOrigins = [
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   }));
+
 
 // Normal middleware
 app.use(express.json());
@@ -187,4 +188,3 @@ app.use("/api/financial", financialRouter);
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
-
