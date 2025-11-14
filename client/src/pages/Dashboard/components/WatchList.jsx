@@ -33,8 +33,8 @@ const WatchList = () => {
   // Filter watchlist based on search term
   const filteredWatchlist = watchlist.filter(
     (stock) =>
-      stock.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      stock.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+      stock.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      stock.symbol?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
