@@ -20,8 +20,7 @@ const yahooFinance = new YahooFinance();
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://bull-and-bear.vercel.app",
-  "https://bull-and-bear-232a-git-main-alok-kumar-singhs-projects.vercel.app",
+  "https://bull-and-bear-4sqc.vercel.app",
   "https://bullandbear-2.onrender.com"
 ];
 
