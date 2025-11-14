@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import connectDB from "./db/db.js";
 import OrderRouter from "./routes/OrderRoutes.js";
-import yahooFinance from "yahoo-finance2";
+import YahooFinance from "yahoo-finance2";
 import authRouter from "./routes/authRoutes.js";
 import client from "./utils/redisclient.js";
 import paymentRouter from "./routes/paymentRoutes.js";
@@ -16,10 +16,15 @@ import financialRouter from "./routes/financialRoute.js";
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+const yahooFinance = new YahooFinance();
+
 const allowedOrigins = [
-  "http://localhost:5173", "https://bull-and-bear.vercel.app",
-  ];
-  
+  "http://localhost:5173",
+  "https://bull-and-bear.vercel.app",
+  "https://bull-and-bear-232a-git-main-alok-kumar-singhs-projects.vercel.app",
+  "https://bullandbear-2.onrender.com"
+];
+  console.log(yahooFinance);
   app.use(cors({
     origin: function (origin, callback) {
       // allow requests with no origin (like mobile apps or curl)
