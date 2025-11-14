@@ -37,10 +37,6 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"]
 }));
 
-// Allow preflight requests globally
-app.options("*", cors());
-
-
 // Normal middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -189,4 +185,3 @@ app.use("/api/financial", financialRouter);
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
-
