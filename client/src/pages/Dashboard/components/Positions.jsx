@@ -1,60 +1,28 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
-import axios from "axios";
-import { useAuth } from "@clerk/clerk-react";
+import React, { useState, useEffect, useContext } from "react";
+import "./Dashboard.css"
 import { GeneralContext } from "./GeneralContext";
 
 const Positions = () => {
-  const [positions, setPositions] = useState([]);
+
+  const { 
+    positions,
+    positionLoading,
+    positionsError,
+    getUserPositions,
+    handleSellStock,
+    findUserFundsData, 
+  } = useContext(GeneralContext);
+ 
   const [isSell, setIsSell] = useState(false);
   const [selectedStock, setSelectedStock] = useState(null);
   const [quantity, setQuantity] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isSelling, setIsSelling] = useState(false);
-  const { handleSellStock, saveDailyPL } = useContext(GeneralContext);
   const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
-  const { getToken } = useAuth();
 
+  useEffect(() => {
+    getUserPositions();
+  }, [getUserPositions]);
 
-  const BASE_URL = import.meta.env.VITE_BASE_URL
-
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num);
-  };
-
-  const fetchPositions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const authToken = await getToken();
-
-      const response = await axios.get(
-        `${BASE_URL}/api/order/get-user-order?type=FNO,INTRADAY`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.data || !Array.isArray(response.data)) {
-        throw new Error("Invalid response format from server");
-      }
-      setPositions(response.data);
-    } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch positions"
-      );
-      setPositions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
 
   const handleSell = (stock) => {
     setIsSell(true);
@@ -62,18 +30,13 @@ const Positions = () => {
     setQuantity(stock.quantity); // default sell full quantity
   };
 
-  useEffect(() => {
-    fetchPositions();
-    const interval = setInterval(fetchPositions, 60000);
-    return () => clearInterval(interval);
-  }, [fetchPositions]);
-
   const callStockSell = async (stock, qty) => {
     setIsSelling(true);
     try {
       const res = await handleSellStock(stock, qty);
       if (res?.success) {
-        await fetchPositions();
+        await getUserPositions();
+        await findUserFundsData();
         setIsSell(false); // hide modal
       } else {
         console.error("Sell failed:", res?.message);
@@ -84,6 +47,15 @@ const Positions = () => {
       setIsSelling(false);
     }
   };
+
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  };
+
+
   // ✅ Calculations
   const totalInvestment = positions.reduce(
     (sum, stock) => sum + stock.quantity * stock.purchasePrice,
@@ -98,28 +70,12 @@ const Positions = () => {
     ? ((profit / totalInvestment) * 100).toFixed(2)
     : 0;
 
-  // Save daily P&L when calculated (will upsert on server). Skips while loading or on error.
-  useEffect(() => {
-    (async () => {
-      try {
-        if (loading || error) return;
-        const pl = Number(profit);
-        if (!Number.isFinite(pl)) return;
-  const date = new Date().toISOString().slice(0, 10);
-  // save under 'positions' category so it doesn't overwrite other categories
-  await saveDailyPL(pl, date, 'positions');
-      } catch (err) {
-        console.error('saveDailyPL (Positions) failed', err);
-      }
-    })();
-  }, [profit, loading, error, saveDailyPL]);
-
   return (
     <div style={{ padding: "20px" }}>
       <h3 style={{ marginBottom: "20px" }}>Positions ({positions.length})</h3>
 
       {/* Loading */}
-      {loading && (
+      {positionLoading && (
         <div
           style={{
             display: "flex",
@@ -150,11 +106,11 @@ const Positions = () => {
       )}
 
       {/* Error */}
-      {error && (
+      {positionsError && (
         <div style={{ color: "red", marginBottom: "20px" }}>
-          {error}{" "}
+          {positionsError}{" "}
           <button
-            onClick={fetchPositions}
+            onClick={getUserPositions}
             style={{
               marginLeft: "10px",
               padding: "6px 12px",
@@ -171,12 +127,12 @@ const Positions = () => {
       )}
 
       {/* No Data */}
-      {!loading && !error && positions.length === 0 && (
+      {!positionLoading && !positionsError && positions.length === 0 && (
         <div>No positions found</div>
       )}
 
       {/* Table */}
-      {!loading && !error && positions.length > 0 && (
+      {!positionLoading && !positionsError && positions.length > 0 && (
         <div style={{ overflowX: "auto", marginBottom: "20px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -297,7 +253,7 @@ const Positions = () => {
 
       {/* Summary */}
       {/* Summary */}
-      {!loading && !error && positions.length > 0 && (
+      {!positionLoading && !positionsError && positions.length > 0 && (
         <div
           style={{
             display: "flex",
