@@ -26,11 +26,11 @@ const calculateSettlementDate = () => {
 };
 
 // // Helper: Check market hours (9:15 – 3:30 IST)
-// const isWithinMarketHours = () => {
-//   const now = new Date();
-//   const timeInMinutes = now.getHours() * 60 + now.getMinutes();
-//   return timeInMinutes >= 555 && timeInMinutes <= 930;
-// };
+const isWithinMarketHours = () => {
+  const now = new Date();
+  const timeInMinutes = now.getHours() * 60 + now.getMinutes();
+  return timeInMinutes >= 555 && timeInMinutes <= 930;
+};
 
 // ✅ Create Order Controller
 export const createOrder = async (req, res) => {
@@ -116,13 +116,13 @@ export const createOrder = async (req, res) => {
     }
 
     // // ✅ Intraday validation
-    // if (orderType === "INTRADAY" && !isWithinMarketHours()) {
-    //   await session.abortTransaction();
-    //   await session.endSession();
-    //   return res.status(400).json({
-    //     message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
-    //   });
-    // }
+    if (orderType === "INTRADAY" && !isWithinMarketHours()) {
+      await session.abortTransaction();
+      await session.endSession();
+      return res.status(400).json({
+        message: "Intraday orders can only be placed during market hours (9:15 AM - 3:30 PM IST)",
+      });
+    }
 
     // ✅ Base order object
     const baseOrder = {

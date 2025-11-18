@@ -133,7 +133,7 @@ const capturePayment = async(req,res) =>{
 
       const userId = decoded.sub;
 
-      console.log("UserId",userId);
+   
 
       const user = await User.findOne({ user_id: userId });
       if (!user) {

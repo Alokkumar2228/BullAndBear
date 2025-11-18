@@ -127,6 +127,7 @@ const BuyActionWindow = ({ data }) => {
     return true;
   };
 
+
   // Get valuable market info message
   const getMarketInfoMessage = () => {
     if (
@@ -171,14 +172,12 @@ const BuyActionWindow = ({ data }) => {
 
   const createOrder = async () => {
     setMarketError("");
-
     await createOrderAPI({
       orderData,
       orderMode,
       stockQuantity,
       stockPrice,
       orderType,
-
       onSuccess: async () => {
         toast.success("Order placed successfully!");
         handleCloseBuyWindow();

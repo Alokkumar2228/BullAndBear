@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 const IncomeReport = ({ symbol = "AAPL" }) => {
+  const BASE_URL = import.meta.env.VITE_BASE_URL
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,7 +45,7 @@ const IncomeReport = ({ symbol = "AAPL" }) => {
       try {
         setLoading(true);
         const response = await fetch(
-          `http://localhost:8000/api/financial/income-reported/${symbol}`
+          `${BASE_URL}/api/financial/income-reported/${symbol}`
         );
         const responseData = await response.json();
 

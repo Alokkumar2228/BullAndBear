@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 
 const CashFlow = ({ symbol = 'AAPL' }) => {
+  const BASE_URL = import.meta.env.VITE_BASE_URL
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,7 +20,7 @@ const CashFlow = ({ symbol = 'AAPL' }) => {
     const fetchCashFlow = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/api/financial/cash-flow/${symbol}`);
+        const response = await fetch(`${BASE_URL}/api/financial/cash-flow/${symbol}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
