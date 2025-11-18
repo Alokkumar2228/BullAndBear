@@ -1,25 +1,35 @@
 import React, { useState, useContext } from "react";
 import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
-import { useAuth } from "@clerk/clerk-react";
-import axios from "axios";
 import "./BuyActionWindow.css";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 const BuyActionWindow = ({ data }) => {
-  const { handleCloseBuyWindow, findTransactionData, findUserFundsData, userFundData } = useContext(GeneralContext);
+  const {
+ createOrderAPI,
+    isLoading,
+    error,
+    setError,
+    marketError,
+    setMarketError,
+    findTransactionData,
+    findUserFundsData,
+    handleCloseBuyWindow,
+    userFundData,  
+  } = useContext(GeneralContext);
   const [stockQuantity, setStockQuantity] = useState(1);
   const [stockPrice, setStockPrice] = useState(data?.price || 0.0);
   const currency = "USD";
   const [orderType, setOrderType] = useState("DELIVERY");
   const [orderMode, setOrderMode] = useState("MARKET");
 
-  const BASE_URL = import.meta.env.VITE_BASE_URL
+  
 
   const orderTypes = [
     { value: "INTRADAY", label: "Intraday" },
     { value: "DELIVERY", label: "Delivery" },
     { value: "FNO", label: "F&O" },
   ];
+
 
   // // Market hours check (9:15 AM to 3:30 PM IST, Monday to Friday)
   const isMarketOpen = () => {
@@ -43,9 +53,6 @@ const BuyActionWindow = ({ data }) => {
     return currentTime >= marketOpenTime && currentTime <= marketCloseTime;
   };
 
-  const [marketError, setMarketError] = useState("");
-
-  const { getToken } = useAuth();
 
   const orderData = {
     symbol: data.symbol,
@@ -55,18 +62,15 @@ const BuyActionWindow = ({ data }) => {
     purchasePrice: stockPrice,
     actualPrice: data.price,
     changePercent: data.changePercent,
-    orderType: orderType,
+    orderType,
     currency,
   };
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   // Calculate required amount and buying power
   const getMarginInfo = () => {
     // displayedTotal uses the price shown in the input (stockPrice)
     const displayedTotal = Number(stockQuantity) * Number(stockPrice || 0);
-
 
     // User available balance (fallback to 0)
     const availableBalance = Number(userFundData?.balance || 0);
@@ -81,13 +85,23 @@ const BuyActionWindow = ({ data }) => {
       // Buying power expressed as the total market value user can control with their balance
       const buyingPowerValue = availableBalance / marginPercent; // e.g., balance * 2 for 50% margin
 
+      // Max quantity the user could buy at actual market price using full buying power
+      const maxQuantityByFunds = data.price
+        ? Math.floor(buyingPowerValue / Number(data.price))
+        : 0;
+
       const insufficientFunds = requiredAmount > availableBalance;
 
       return {
         requiredAmount,
         buyingPower: buyingPowerValue,
         availableBalance,
-        marginText: `${currency === "USD" ? "$" : "₹"}${requiredAmount.toFixed(2)}`,
+        marginText: `${currency === "USD" ? "$" : "₹"}${requiredAmount.toFixed(
+          2
+        )}`,
+        buyingPowerText: `Buying Power (2x): ${
+          currency === "USD" ? "$" : "₹"
+        }${buyingPowerValue.toFixed(2)} (Max Qty: ${maxQuantityByFunds})`,
         insufficientFunds,
       };
     }
@@ -97,13 +111,15 @@ const BuyActionWindow = ({ data }) => {
       // Only INTRADAY should expose buyingPower; for DELIVERY/FNO hide it by returning null
       buyingPower: null,
       availableBalance,
-      marginText: `${currency === "USD" ? "$" : "₹"}${displayedTotal.toFixed(2)}`,
+      marginText: `${currency === "USD" ? "$" : "₹"}${displayedTotal.toFixed(
+        2
+      )}`,
       buyingPowerText: null,
       insufficientFunds: displayedTotal > availableBalance,
     };
   };
 
-  // // Check if order type is allowed based on market hours
+  // Check if order type is allowed based on market hours
   const isOrderTypeAllowed = () => {
     if (orderType === "INTRADAY" || orderType === "DELIVERY" || orderType === "FNO") {
       return isMarketOpen();
@@ -111,23 +127,6 @@ const BuyActionWindow = ({ data }) => {
     return true;
   };
 
-  // // Get market status message
-  const getMarketStatusMessage = () => {
-    if ((orderType === "INTRADAY" || orderType === "DELIVERY" || orderType === "FNO") && !isMarketOpen()) {
-      const now = new Date();
-      const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-      const day = istTime.getDay();
-
-      const orderTypeLabel = orderType === "INTRADAY" ? "Intraday" : orderType === "DELIVERY" ? "Delivery" : "F&O";
-
-      if (day === 0 || day === 6) {
-        return `${orderTypeLabel} orders are not available on weekends. Market is closed.`;
-      } else {
-        return `${orderTypeLabel} orders are only available during market hours (9:15 AM - 3:30 PM IST).`;
-      }
-    }
-    return "";
-  };
 
   // Get valuable market info message
   const getMarketInfoMessage = () => {
@@ -172,68 +171,22 @@ const BuyActionWindow = ({ data }) => {
   };
 
   const createOrder = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setMarketError("");
-
-      // // // Check market hours restriction for all order types
-      if (!isOrderTypeAllowed()) {
-        setMarketError(getMarketStatusMessage());
-        setIsLoading(false);
-        return;
-      }
-
-      const authToken = await getToken();
-      if (!authToken) {
-        throw new Error("Authentication token not available");
-      }
-
-      // Calculate total amount in the given currency (server converts to INR when needed)
-      const totalAmount = Number(stockQuantity) * Number(stockPrice);
-
-      const orderPayload = {
-        ...orderData,
-        orderMode,    // "Market" or LIMIT
-        totalAmount,
-        status: "PENDING",
-        placedAt: new Date().toISOString(),
-      };
-      console.log("orderPayload", orderPayload);
-      
-      const response = await axios.post(
-        `${BASE_URL}/api/order/create`,
-        orderPayload,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-     
-
-      if(response.data.success == true){
+    setMarketError("");
+    await createOrderAPI({
+      orderData,
+      orderMode,
+      stockQuantity,
+      stockPrice,
+      orderType,
+      onSuccess: async () => {
         toast.success("Order placed successfully!");
-      }
-
-     
-     
-      handleCloseBuyWindow();
-      await findUserFundsData();
-      await findTransactionData();
-      // You can dispatch an event or call a callback to refresh the orders list
-    } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to create order"
-      );
-      console.error("Error creating order:", error);
-    } finally {
-      setIsLoading(false);
-    }
+        handleCloseBuyWindow();
+        await findUserFundsData();
+        await findTransactionData();
+      },
+    });
   };
+
 
   const handleBuyClick = () => {
     createOrder();
@@ -259,7 +212,7 @@ const BuyActionWindow = ({ data }) => {
             ) : (
               <span className="icon">↑</span>
             )}
-           {Math.abs(data.changePercent).toFixed(2)}%
+            {Math.abs(data.changePercent).toFixed(2)}%
           </p>
           <span className="stock-price">
             {currency === "USD" ? "$" : "₹"}
@@ -343,7 +296,6 @@ const BuyActionWindow = ({ data }) => {
                   setStockPrice(Number(data.price));
                 }
               }}
-
             />
             Market
           </label>
@@ -372,14 +324,23 @@ const BuyActionWindow = ({ data }) => {
             return (
               <>
                 {/* If intraday (buyingPower available) show amount on left and label on right */}
-                <div style={{ width: '100%' }}>
-                  <div className="margin-text" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <span style={{ color: '#2563eb', fontWeight: 600 }}>{orderType === 'INTRADAY' ? 'Margin (2x)' : 'Total'}</span>
-                    <strong style={{ color: '#000' }}>{marginInfo.marginText}</strong>
+                <div style={{ width: "100%" }}>
+                  <div
+                    className="margin-text"
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      width: "100%",
+                    }}
+                  >
+                    <span style={{ color: "#2563eb", fontWeight: 600 }}>
+                      {orderType === "INTRADAY" ? "Margin (2x)" : "Total"}
+                    </span>
+                    <strong style={{ color: "#000" }}>
+                      {marginInfo.marginText}
+                    </strong>
                   </div>
-                  {marginInfo.buyingPower != null && (
-                    <div className="buying-power-text" style={{ fontSize: '0.9em', marginTop: 6, color: '#111' }}>{marginInfo.buyingPowerText}</div>
-                  )}
                   {marginInfo.insufficientFunds && (
                     <div className="insufficient-funds" style={{ color: '#b91c1c', fontSize: '12px', marginTop: 6 }}>
                       Insufficient funds: required {currency === 'USD' ? '$' : '₹'}{Number(marginInfo.requiredAmount).toFixed(2)} — available {currency === 'USD' ? '$' : '₹'}{Number(marginInfo.availableBalance).toFixed(2)}
@@ -389,11 +350,12 @@ const BuyActionWindow = ({ data }) => {
               </>
             );
           })()}
+
           <div className="action-buttons">
             <button
-              className={`buy-btn ${isLoading ? "loading" : ""} ${!isOrderTypeAllowed() ? "disabled" : ""} `}  
+              className={`buy-btn ${isLoading ? "loading" : ""} ${!isOrderTypeAllowed() ? "disabled" : ""}`} 
               onClick={handleBuyClick}
-               disabled={isLoading || !stockQuantity || !stockPrice || !isOrderTypeAllowed()} 
+              disabled={isLoading || !stockQuantity || !stockPrice || !isOrderTypeAllowed() }
             >
               {isLoading ? "Placing Order..." : "Buy"}
             </button>

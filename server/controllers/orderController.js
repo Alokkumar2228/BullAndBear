@@ -249,8 +249,9 @@ export const getUserOrders = async (req, res) => {
    
     const orders = await Order.find({ userId }).sort({ executedAt: -1 });
     if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: "No orders found for this user" });
+      return res.status(200).json([]);  // return empty array
     }
+
 
     const symbols = [...new Set(orders.map(o => o.symbol))];
 
@@ -592,8 +593,9 @@ export const getAllOrders = async (req, res) => {
   try {
     const allOrders = await userallOrder.find({ userId }).sort({ executedAt: -1 });
     if (!allOrders || allOrders.length === 0) {
-      return res.status(404).json({ message: "No orders found for this user" });
+      return res.status(200).json({ success: true, orders: [] });
     }
+
     return res.status(200).json({ success: true, orders: allOrders });
   } catch (error) {
     console.error("Error fetching all user orders:", error);

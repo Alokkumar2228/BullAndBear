@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import connectDB from "./db/db.js";
 import OrderRouter from "./routes/OrderRoutes.js";
-import YahooFinance from "yahoo-finance2";
+import yahooFinance from "yahoo-finance2";
 import authRouter from "./routes/authRoutes.js";
 import client from "./utils/redisclient.js";
 import paymentRouter from "./routes/paymentRoutes.js";
@@ -15,7 +15,6 @@ import financialRouter from "./routes/financialRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
-const yahooFinance = new YahooFinance();
 
 const allowedOrigins = [
   "http://localhost:5173",

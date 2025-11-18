@@ -1,93 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import axios from "axios";
-import { useAuth } from "@clerk/clerk-react";
+import React, { useContext, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { GeneralContext } from "@/pages/Dashboard/components/GeneralContext";
 
 export default function Orders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all');
-  const {getToken} = useAuth();
+  const {
+    orders,
+    ordersLoading,
+    ordersError,
+    getAllUserOrders,
+  } = useContext(GeneralContext);
 
-  const BASE_URL = import.meta.env.VITE_BASE_URL
+  const [filter, setFilter] = useState("all");
 
-
-  const fetchOrderData = React.useCallback(async () => {
-    setError(null);
-    const authToken = await getToken();
-
-    
-    try {
-      setLoading(true);
-      
-      const response = await axios.get(
-        `${BASE_URL}/api/order/get-all-user-order`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          }
-        }
-      );
-
-      
-      
-      if (filter !== 'all' && response.data.orders) {
-        const filteredOrders = response.data.orders.filter(order => {
-          return order.orderType === filter;
-        });    
-        setOrders(filteredOrders);
-      } else {
-
-        setOrders(response.data.orders || []);
-      }
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch orders';
-      setError(errorMessage);
-      console.error('Error fetching orders:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [filter, getToken]);
-
+  // Fetch orders from context when component loads
   useEffect(() => {
-    fetchOrderData();
-  }, [fetchOrderData]);
+    getAllUserOrders();
+  }, [getAllUserOrders]);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
+  // ⭐ Filter only on UI
+  const filteredOrders =
+    filter === "all"
+      ? orders
+      : orders.filter((order) => order.orderType === filter);
+
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
     }).format(amount);
-  };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getOrderTypeColor = (orderType) => {
     switch (orderType) {
-      case 'INTRADAY': return '#e91e63';
-      case 'DELIVERY': return '#2196f3';
-      case 'FNO': return '#ff9800';
-      default: return '#6c757d';
+      case "INTRADAY":
+        return "#e91e63";
+      case "DELIVERY":
+        return "#2196f3";
+      case "FNO":
+        return "#ff9800";
+      default:
+        return "#6c757d";
     }
   };
 
-  const getModeColor = (mode) => {
-    return mode === 'BUY' ? '#28a745' : '#dc3545';
-  };
+  const getModeColor = (mode) => (mode === "BUY" ? "#28a745" : "#dc3545");
 
-  if (loading) {
+  // ------------------ UI STATES ------------------
+
+  if (ordersLoading) {
     return (
       <div style={styles.container}>
         <div style={styles.loadingContainer}>
@@ -100,74 +71,87 @@ export default function Orders() {
 
   return (
     <div style={styles.container}>
-      {error && (
+      {ordersError && (
         <div style={styles.errorMessage}>
-          {error}
-          <button 
-            onClick={() => {
-              setError(null);
-              fetchOrderData();
-            }}
+          {ordersError}
+          <button
+            onClick={getAllUserOrders}
             style={styles.errorButton}
           >
             Try Again
           </button>
         </div>
       )}
-     
+
+      {/* HEADER */}
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>My Orders</h1>
           <p style={styles.subtitle}>Track and manage your stock orders</p>
         </div>
+
         <div style={styles.headerActions}>
-          <select 
-            style={styles.filterSelect} 
-            value={filter} 
-            onChange={(e) => {
-              
-              setFilter(e.target.value);
-            }}
+
+          <select
+            style={styles.filterSelect}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
           >
             <option value="all">All Orders</option>
             <option value="INTRADAY">Intraday</option>
             <option value="DELIVERY">Delivery</option>
             <option value="FNO">F&O</option>
           </select>
-          <button style={styles.refreshButton} onClick={fetchOrderData}>
+
+          <button
+            style={styles.refreshButton}
+            onClick={getAllUserOrders}
+          >
             ↻ Refresh
           </button>
         </div>
       </div>
 
+      {/* ORDER LIST */}
       <div style={styles.ordersBox}>
-        {orders.length === 0 ? (
+        {filteredOrders.length === 0 ? (
           <div style={styles.emptyState}>
             <div style={styles.emptyText}>
-              {filter !== 'all' ? 'No orders match this filter.' : "You haven't placed any orders yet."}
+              {filter !== "all"
+                ? "No orders match this filter."
+                : "You haven't placed any orders yet."}
             </div>
-            {filter !== 'all' ? (
+
+            {filter !== "all" ? (
               <button
                 style={styles.clearButton}
-                onClick={() => setFilter('all')}
+                onClick={() => setFilter("all")}
               >
                 Clear filter
               </button>
             ) : (
-              <Link to={"/"} style={styles.getStartedButton}>Get started</Link>
+              <Link to={"/"} style={styles.getStartedButton}>
+                Get started
+              </Link>
             )}
           </div>
         ) : (
           <div style={styles.ordersList}>
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <div key={order.id} style={styles.orderCard}>
                 <div style={styles.orderHeader}>
                   <div style={styles.orderHeaderLeft}>
                     <h3 style={styles.stockSymbol}>{order.symbol}</h3>
                     <span style={styles.stockName}>{order.name}</span>
                   </div>
+
                   <div style={styles.orderHeaderRight}>
-                    <span style={{...styles.modeBadge, color: getModeColor(order.mode)}}>
+                    <span
+                      style={{
+                        ...styles.modeBadge,
+                        color: getModeColor(order.mode),
+                      }}
+                    >
                       {order.mode}
                     </span>
                   </div>
@@ -176,32 +160,47 @@ export default function Orders() {
                 <div style={styles.orderDetails}>
                   <div style={styles.detailRow}>
                     <span style={styles.detailLabel}>Type:</span>
-                    <span style={{...styles.orderTypeBadge, color: getOrderTypeColor(order.orderType)}}>
+                    <span
+                      style={{
+                        ...styles.orderTypeBadge,
+                        color: getOrderTypeColor(order.orderType),
+                      }}
+                    >
                       {order.orderType}
                     </span>
                   </div>
 
                   <div style={styles.detailRow}>
                     <span style={styles.detailLabel}>Quantity:</span>
-                    <span style={styles.detailValue}>{order.quantity.toLocaleString()}</span>
+                    <span style={styles.detailValue}>
+                      {order.quantity.toLocaleString()}
+                    </span>
                   </div>
 
                   <div style={styles.detailRow}>
                     <span style={styles.detailLabel}>Date:</span>
-                    <span style={styles.detailValue}>{formatDate(order.executedAt)}</span>
+                    <span style={styles.detailValue}>
+                      {formatDate(order.executedAt)}
+                    </span>
                   </div>
 
                   <div style={styles.detailRow}>
                     <span style={styles.detailLabel}>Purchase Price:</span>
-                    <span style={styles.detailValue}>{formatCurrency(order.purchasePrice)}</span>
+                    <span style={styles.detailValue}>
+                      {formatCurrency(order.purchasePrice)}
+                    </span>
                   </div>
 
-                  {order.mode === 'SELL' && order.sellPrice !== null && order.sellPrice !== undefined && (
-                    <div style={styles.detailRow}>
-                      <span style={styles.detailLabel}>Sell Price:</span>
-                      <span style={styles.detailValue}>{formatCurrency(order.sellPrice)}</span>
-                    </div>
-                  )}
+                  {order.mode === "SELL" &&
+                    order.sellPrice !== null &&
+                    order.sellPrice !== undefined && (
+                      <div style={styles.detailRow}>
+                        <span style={styles.detailLabel}>Sell Price:</span>
+                        <span style={styles.detailValue}>
+                          {formatCurrency(order.sellPrice)}
+                        </span>
+                      </div>
+                    )}
                 </div>
               </div>
             ))}
@@ -211,6 +210,7 @@ export default function Orders() {
     </div>
   );
 }
+
 
 const styles = {
   container: {

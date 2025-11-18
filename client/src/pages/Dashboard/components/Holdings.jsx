@@ -1,130 +1,81 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
-import axios from "axios";
-import { useAuth } from "@clerk/clerk-react";
+import React, { useState, useEffect, useContext } from "react";
 import "./dashboard.css";
 import { GeneralContext } from "./GeneralContext";
 
 const Holdings = () => {
-  const [holdings, setHoldings] = useState([]);
+
+  const {
+    holdings,
+    holdingsLoading,
+    holdingsError,
+    getUserHoldings,
+    handleSellStock,
+    findUserFundsData,
+  } = useContext(GeneralContext);
+
   const [isSell, setIsSell] = useState(false);
   const [selectedStock, setSelectedStock] = useState(null);
   const [quantity, setQuantity] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isSelling, setIsSelling] = useState(false);
-  const { getToken } = useAuth();
-  const { handleSellStock, findUserFundsData } =
-    useContext(GeneralContext);
   const [showMarketClosedMsg, setShowMarketClosedMsg] = useState(false);
 
-  const BASE_URL = import.meta.env.VITE_BASE_URL;
+  // Fetch holdings on mount
+  useEffect(() => {
+    getUserHoldings();
+  }, [getUserHoldings]);
 
-  // Format number utility
+  const handleSell = (stock) => {
+    setIsSell(true);
+    setSelectedStock(stock);
+    setQuantity(stock.quantity);
+  };
+
+  const callStockSell = async (stock, qty) => {
+    setIsSelling(true);
+
+    try {
+      const res = await handleSellStock(stock, qty);
+
+      if (res?.success) {
+        await getUserHoldings();
+        await findUserFundsData();
+        setIsSell(false);
+      }
+    } catch (err) {
+      console.error("Sell error:", err);
+    } finally {
+      setIsSelling(false);
+    }
+  };
+
+  // Format number
   const formatNumber = (num) =>
     new Intl.NumberFormat("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(num);
 
-  // ✅ Fetch holdings (DELIVERY orders)
-  const fetchHoldings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const authToken = await getToken();
-
-      const response = await axios.get(
-        `${BASE_URL}/api/order/get-user-order?type=DELIVERY`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.data || !Array.isArray(response.data)) {
-        throw new Error("Invalid response format from server");
-      }
-
-      setHoldings(response.data);
-    } catch (err) {
-      console.error("Error fetching delivery orders:", err);
-      setHoldings([]);
-      setError(
-        err.response?.data?.message || err.message || "Failed to fetch holdings"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
-
-  // ✅ Fetch holdings on mount
-  useEffect(() => {
-    fetchHoldings();
-  }, [fetchHoldings]);
-
-  const handleSell = (stock) => {
-    setIsSell(true);
-    setSelectedStock(stock);
-    setQuantity(stock.quantity); // default to full quantity
-  };
-
-  const callStockSell = async (stock, qty) => {
-    setIsSelling(true);
-    try {
-      const res = await handleSellStock(stock, qty);
-
-      if (res?.success) {
-        await fetchHoldings();
-        await await findUserFundsData();
-        setIsSell(false);
-      } else {
-        console.error("Sell failed:", res?.message);
-      }
-    } catch (err) {
-      console.error("Error in callStockSell:", err);
-    } finally {
-      setIsSelling(false);
-    }
-  };
-
-  // ✅ Calculations
+  // Calculations
   const totalInvestment = holdings.reduce(
     (sum, stock) => sum + (stock.totalAmount || 0),
     0
   );
+
   const currentValue = holdings.reduce(
     (sum, stock) => sum + stock.quantity * stock.actualPrice,
     0
   );
-  const profit = currentValue - totalInvestment;
-  const profitPercentage = totalInvestment
-    ? ((profit / totalInvestment) * 100).toFixed(2)
-    : 0;
 
-  // Save daily P&L when calculated (will upsert on server). Skips while loading or on error.
-  // useEffect(() => {
-  //   (async () => {
-  //     try {
-  //       if (loading || error) return;
-  //       const pl = Number(profit);
-  //       if (!Number.isFinite(pl)) return;
-  //       const date = new Date().toISOString().slice(0, 10);
-  //       await saveDailyPL(pl, date);
-  //     } catch (err) {
-  //       // non-fatal
-  //       console.error("saveDailyPL (Holdings) failed", err);
-  //     }
-  //   })();
-  // }, [profit, loading, error, saveDailyPL]);
+  const profit = currentValue - totalInvestment;
+  const profitPercentage =
+    totalInvestment > 0 ? ((profit / totalInvestment) * 100).toFixed(2) : 0;
 
   return (
     <div style={{ padding: "20px" }}>
       <h3 style={{ marginBottom: "20px" }}>Holdings ({holdings.length})</h3>
 
       {/* Loading */}
-      {loading && (
+      {holdingsLoading && (
         <div
           style={{
             display: "flex",
@@ -149,11 +100,11 @@ const Holdings = () => {
       )}
 
       {/* Error */}
-      {error && (
+      {holdingsError && (
         <div style={{ color: "red", marginBottom: "20px" }}>
-          {error}{" "}
+          {holdingsError} {" "}
           <button
-            onClick={fetchHoldings}
+            onClick={getUserHoldings}
             style={{
               marginLeft: "10px",
               padding: "6px 12px",
@@ -170,12 +121,12 @@ const Holdings = () => {
       )}
 
       {/* No Data */}
-      {!loading && !error && holdings.length === 0 && (
+      {!holdingsLoading && !holdingsError && holdings.length === 0 && (
         <div>No holdings found</div>
       )}
 
       {/* Table */}
-      {!loading && !error && holdings.length > 0 && (
+      {!holdingsLoading && !holdingsError && holdings.length > 0 && (
         <div style={{ overflowX: "auto", marginBottom: "20px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -205,66 +156,25 @@ const Holdings = () => {
               </tr>
             </thead>
             <tbody>
-              {holdings.map((stock, index) => {
+              {holdings.map((stock) => {
                 const curValue = stock.quantity * stock.actualPrice;
                 const profitValue =
                   (stock.actualPrice - stock.purchasePrice) * stock.quantity;
                 const isProfit = profitValue >= 0;
-
                 return (
-                  <tr key={index} style={{ borderBottom: "1px solid #eee" }}>
-                    <td style={{ padding: "8px" }}>
-                      {stock.symbol} - {stock.name}
-                    </td>
+                  <tr key={stock.symbol}>
+                    <td style={{ padding: "8px" }}>{stock.symbol}</td>
                     <td style={{ padding: "8px" }}>{stock.quantity}</td>
-                    <td style={{ padding: "8px" }}>
-                      {formatNumber(stock.purchasePrice)}
-                    </td>
-                    <td
-                      style={{
-                        padding: "8px",
-                        color: stock.actualPrice >= stock.purchasePrice,
-                        // ? "green"
-                        // : "red",
-                      }}
-                    >
-                      {formatNumber(stock.actualPrice)}
-                    </td>
+                    <td style={{ padding: "8px" }}>{formatNumber(stock.purchasePrice)}</td>
+                    <td style={{ padding: "8px" }}>{formatNumber(stock.actualPrice)}</td>
                     <td style={{ padding: "8px" }}>{formatNumber(curValue)}</td>
-                    <td
-                      style={{
-                        padding: "8px",
-                        color: isProfit ? "green" : "red",
-                      }}
-                    >
-                      {formatNumber(profitValue)}
-                    </td>
-                    <td
-                      style={{
-                        padding: "8px",
-                        color: isProfit ? "green" : "red",
-                      }}
-                    >
-                      {(
-                        ((stock.actualPrice - stock.purchasePrice) /
-                          stock.purchasePrice) *
-                        100
-                      ).toFixed(2)}
-                      %
-                    </td>
-                    <td
-                      style={{
-                        padding: "8px",
-                        color: stock.changePercent >= 0 ? "green" : "red",
-                      }}
-                    >
-                      {stock.changePercent.toFixed(2)}%
-                    </td>
+                    <td style={{ padding: "8px", color: isProfit ? "green" : "red" }}>{formatNumber(profitValue)}</td>
+                    <td style={{ padding: "8px", color: isProfit ? "green" : "red" }}>{(((stock.actualPrice - stock.purchasePrice) / stock.purchasePrice) * 100).toFixed(2)}%</td>
+                    <td style={{ padding: "8px", color: stock.changePercent >= 0 ? "green" : "red" }}>{stock.changePercent.toFixed(2)}%</td>
                     <td style={{ padding: "8px" }}>
                       <button
                         style={{
-                          background:
-                            "linear-gradient(135deg,#f30909 0%,#e80606 100%)",
+                          background: "linear-gradient(135deg,#f30909 0%,#e80606 100%)",
                           color: "white",
                           border: "1px solid #f4511e",
                           borderRadius: "6px",
@@ -289,7 +199,7 @@ const Holdings = () => {
       )}
 
       {/* Summary */}
-      {!loading && !error && holdings.length > 0 && (
+      {!holdingsLoading && !holdingsError && holdings.length > 0 && (
         <div
           style={{
             display: "flex",
