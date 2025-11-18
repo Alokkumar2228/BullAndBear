@@ -1,7 +1,5 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import DailyPLHoldings from "../models/DailyPLHoldingsModel.js";
-
 
 dotenv.config();
 
