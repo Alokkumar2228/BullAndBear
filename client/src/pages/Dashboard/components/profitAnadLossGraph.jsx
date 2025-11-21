@@ -300,7 +300,7 @@ const ProfitAndLossGraph = () => {
           <p
             style={{ color: "#4b5563", fontSize: "14px", margin: "0 0 4px 0" }}
           >
-            Portfolio: ₹{data.portfolioValue.toLocaleString()}
+            Portfolio: ${data.portfolioValue.toLocaleString()}
           </p>
           <p
             style={{
@@ -309,7 +309,7 @@ const ProfitAndLossGraph = () => {
               margin: "0 0 4px 0",
             }}
           >
-            Daily P&L: {data.dailyPL >= 0 ? "+" : ""}₹
+            Daily P&L: {data.dailyPL >= 0 ? "+" : ""}$
             {data.dailyPL.toLocaleString()}
           </p>
           <p
@@ -319,7 +319,7 @@ const ProfitAndLossGraph = () => {
               margin: 0,
             }}
           >
-            Total P&L: {data.totalPL >= 0 ? "+" : ""}₹
+            Total P&L: {data.totalPL >= 0 ? "+" : ""}$
             {data.totalPL.toLocaleString()}
           </p>
         </div>
@@ -553,7 +553,7 @@ const ProfitAndLossGraph = () => {
                       margin: 0,
                     }}
                   >
-                    ₹{currentTotalInvested.toLocaleString()}
+                    ${currentTotalInvested.toLocaleString()}
                   </p>
                 </div>
                 <DollarSign
@@ -596,7 +596,7 @@ const ProfitAndLossGraph = () => {
                       margin: 0,
                     }}
                   >
-                    ₹{currentTotalValue.toLocaleString()}
+                    ${currentTotalValue.toLocaleString()}
                   </p>
                 </div>
                 <Activity
@@ -639,7 +639,7 @@ const ProfitAndLossGraph = () => {
                       margin: 0,
                     }}
                   >
-                    {isProfit ? "+" : ""}₹
+                    {isProfit ? "+" : ""}$
                     {(displayedTotalPL || 0).toLocaleString()}
                   </p>
                   <p
@@ -702,7 +702,7 @@ const ProfitAndLossGraph = () => {
                       margin: 0,
                     }}
                   >
-                    {isTodayProfit ? "+" : ""}₹
+                    {isTodayProfit ? "+" : ""}$
                     {Number(todayDelta).toLocaleString()}
                   </p>
                 </div>
