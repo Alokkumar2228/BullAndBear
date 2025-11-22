@@ -1,16 +1,14 @@
 import Order from "../models/OrderModel.js";
 import User from "../models/UserModel.js";
 import { getUsdInrRate } from "../utils/forex.js";
-import yahooFinance from "yahoo-finance2";
+import YahooFinance from "yahoo-finance2";
 import client from "../utils/redisclient.js";
 import userallOrder from "../models/userOrderModel.js";
 import mongoose from "mongoose";
 import { sellSchema } from "../zod/sellStockSchema.js";
 
 
-// `yahoo-finance2` exports functions directly; no constructor needed.
-// Use the default export (`yahooFinance`) directly.
-
+const yahooFinance = new YahooFinance();
 // Logging utility
 const isDevelopment = process.env.NODE_ENV === "development";
 const logger = {
