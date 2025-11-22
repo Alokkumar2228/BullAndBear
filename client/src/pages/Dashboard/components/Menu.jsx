@@ -1,32 +1,40 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import assets from "@/assets";
-import { useClerk } from "@clerk/clerk-react";
+import { useClerk, useUser } from "@clerk/clerk-react"; // <-- add useUser
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import ProfilePopup from "./ProfilePopup"; // <-- import new component
 
 const Menu = () => {
   const [selectedMenu, setSelectedMenu] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const user = localStorage.getItem("user_name");
+  // const user = localStorage.getItem("user_name"); <-- remove localStorage lookup
+  const { signOut } = useClerk();
+  const { user } = useUser(); // <-- get user from Clerk
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useClerk();
-
-  const handleUserfileClick = () => {
-    setShowDropdown((prev) => !prev);
-  };
+  const profileRef = useRef(null);
 
   const handleMenuClick = (index) => {
     setSelectedMenu(index);
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    localStorage.removeItem("user_name");
-    navigate("/auth");
+  const handleUserfileClick = () => {
+    setShowDropdown((prev) => !prev);
   };
 
-  function getInitials(name) {
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    } finally {
+      setShowDropdown(false);
+      navigate("/auth");
+    }
+  };
+
+  function getInitialsFromName(name) {
     if (!name) return "";
     const words = name.trim().split(" ");
     if (words.length >= 2) {
@@ -39,19 +47,38 @@ const Menu = () => {
   }
 
   // For menu active highlight on refresh
-  const menuItems = [
-    { name: "Dashboard", path: "/dashboard" },
-    { name: "Orders", path: "/dashboard/orders" },
-    { name: "Holdings", path: "/dashboard/holdings" },
-    { name: "Positions", path: "/dashboard/positions" },
-    { name: "Funds", path: "/dashboard/funds" },
-  ];
+  const menuItems = useMemo(
+    () => [
+      { name: "Dashboard", path: "/dashboard" },
+      { name: "Orders", path: "/dashboard/orders" },
+      { name: "Holdings", path: "/dashboard/holdings" },
+      { name: "Positions", path: "/dashboard/positions" },
+      { name: "Funds", path: "/dashboard/funds" },
+    ],
+    []
+  );
 
   // Sync active menu with current URL
   useEffect(() => {
     const index = menuItems.findIndex((item) => item.path === location.pathname);
     if (index !== -1) setSelectedMenu(index);
-  }, [location.pathname]);
+  }, [location.pathname, menuItems]);
+
+  // Close dropdown when clicking outside the profile area
+  useEffect(() => {
+    function handleDocumentClick(e) {
+      if (
+        showDropdown &&
+        profileRef.current &&
+        !profileRef.current.contains(e.target)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleDocumentClick);
+    return () => document.removeEventListener("mousedown", handleDocumentClick);
+  }, [showDropdown]);
 
   return (
     <div
@@ -118,7 +145,9 @@ const Menu = () => {
 
       {/* Profile */}
       <div
+        
         className="profile"
+        ref={profileRef}
         onClick={handleUserfileClick}
         style={{ cursor: "pointer", position: "relative" }}
       >
@@ -136,46 +165,37 @@ const Menu = () => {
             fontWeight: "600",
           }}
         >
-          {getInitials(user)}
+          {user?.profileImageUrl ? (
+            <img
+              src={user.profileImageUrl}
+              alt="avatar"
+              style={{
+                width: "100%",
+                height: "100%",
+                borderRadius: "50%",
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            getInitialsFromName(
+              user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`
+            )
+          )}
         </div>
 
         {showDropdown && (
           <div
-            className="dropdown"
             style={{
               position: "fixed",
               right: "30px",
               top: "60px",
-              backgroundColor: "#fff",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-              padding: "5px",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
               zIndex: 999999,
             }}
           >
-            <button
-              onClick={handleLogout}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 14px",
-                backgroundColor: "transparent",
-                color: "black",
-                border: "none",
-                borderRadius: "6px",
-                fontSize: "14px",
-                fontWeight: "500",
-                cursor: "pointer",
-              }}
-            >
-              <i
-                className="fa-solid fa-right-from-bracket"
-                style={{ fontSize: "16px", color: "red" }}
-              ></i>
-              Logout
-            </button>
+            <ProfilePopup
+              onClose={() => setShowDropdown(false)}
+              onLogout={handleLogout}
+            />
           </div>
         )}
       </div>
