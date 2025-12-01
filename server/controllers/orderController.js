@@ -1,14 +1,15 @@
 import Order from "../models/OrderModel.js";
 import User from "../models/UserModel.js";
 import { getUsdInrRate } from "../utils/forex.js";
-import YahooFinance from "yahoo-finance2";
+import yahooFinance from "yahoo-finance2";
 import client from "../utils/redisclient.js";
 import userallOrder from "../models/userOrderModel.js";
 import mongoose from "mongoose";
 import { sellSchema } from "../zod/sellStockSchema.js";
 
 
-const yahooFinance = new YahooFinance();
+// `yahoo-finance2` exports functions (not a constructor). Use the imported
+// module directly (it exposes `quote`, `chart`, etc.).
 // Logging utility
 const isDevelopment = process.env.NODE_ENV === "development";
 const logger = {
@@ -30,9 +31,22 @@ const calculateSettlementDate = () => {
 // // Helper: Check market hours (9:15 – 3:30 IST)
 const isWithinMarketHours = () => {
   const now = new Date();
-  const timeInMinutes = now.getHours() * 60 + now.getMinutes();
-  return timeInMinutes >= 555 && timeInMinutes <= 930;
+
+  // Convert server time → IST
+  const ist = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+  );
+
+  const hours = ist.getHours();
+  const minutes = ist.getMinutes();
+  const timeInMinutes = hours * 60 + minutes;
+
+  const MARKET_OPEN = 9 * 60 + 15;   // 9:15 AM
+  const MARKET_CLOSE = 15 * 60 + 30; // 3:30 PM
+
+  return timeInMinutes >= MARKET_OPEN && timeInMinutes <= MARKET_CLOSE;
 };
+
 
 // ✅ Create Order Controller
 export const createOrder = async (req, res) => {
@@ -603,6 +617,5 @@ export const getAllOrders = async (req, res) => {
     console.error("Error fetching all user orders:", error);
   }
 };
-
 
 

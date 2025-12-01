@@ -151,8 +151,8 @@ export const GeneralContextProvider = (props) => {
       orderMode,
       stockQuantity,
       stockPrice,
-      // isOrderTypeAllowed,
-      // getMarketStatusMessage,
+    //  isOrderTypeAllowed,
+    //  getMarketStatusMessage,
       onSuccess,
     }) => {
       setError(null);
@@ -238,9 +238,9 @@ export const GeneralContextProvider = (props) => {
       },
     });
     const data = {
-      balance: response.data.user.balance,
-      investedAmount: response.data.user.investedAmount,
-      withdrawAmount: response.data.user.withdrawAmount,
+      balance: response.data.user?.balance,
+      investedAmount: response.data.user?.investedAmount,
+      withdrawAmount: response.data.user?.withdrawAmount,
     };
     setUserFundData(data);
   }, [getToken, BASE_URL]);
