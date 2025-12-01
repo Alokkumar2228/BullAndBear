@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import connectDB from "./db/db.js";
 import OrderRouter from "./routes/OrderRoutes.js";
-import yahooFinance from "yahoo-finance2";
+import YahooFinance from "yahoo-finance2";
 import authRouter from "./routes/authRoutes.js";
 import client from "./utils/redisclient.js";
 import paymentRouter from "./routes/paymentRoutes.js";
@@ -16,7 +16,7 @@ import financialRouter from "./routes/financialRoute.js";
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// const yahooFinance = new yahooFinance();
+const yahooFinance = new YahooFinance();
 
 
 const allowedOrigins = [
@@ -56,7 +56,7 @@ const symbols = [   "AAPL",   "MSFT",   "GOOGL",   "AMZN",   "META",   "TSLA",  
       "CL",   "KMB",   "GIS",   "XOM",   "CVX",   "BP",   "SHEL",   "COP",   "DUK",   "NEE",   "SO", 
       "ENPH",   "FSLR",   "JPM",   "GS",   "MS",   "BAC",   "WFC",   "C",   "BLK",   "SCHW",   "TROW", 
      "SPGI",   "PFE",  "JNJ",   "MRK",   "ABBV",   "LLY",   "UNH",   "BMY",   "AMGN",   "GILD",   "CVS",   "DIS",   "PARA",   "ROKU",   "WBD",   "SONY",   "TTWO",   "EA",   "MTCH",   "SPOT",   "ZM", ];
-// ✅ Stocks route
+//   Stocks route
 
 app.get("/", (req, res) => {
   res.send("API is running...");

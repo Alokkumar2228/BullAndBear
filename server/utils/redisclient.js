@@ -16,14 +16,14 @@ const client = createClient({
   },
 });
 
-// ✅ Handle important events
-client.on('connect', () => console.log('✅ Redis Client Connected'));
+//   Handle important events
+client.on('connect', () => console.log('  Redis Client Connected'));
 client.on('ready', () => console.log('🚀 Redis Client Ready'));
 client.on('reconnecting', () => console.log('🔁 Redis Reconnecting...'));
 client.on('end', () => console.log('❌ Redis Connection Closed'));
 client.on('error', (err) => console.error('⚠️ Redis Client Error:', err));
 
-// ✅ Keep-alive ping to prevent idle disconnects (every 10 seconds)
+//   Keep-alive ping to prevent idle disconnects (every 10 seconds)
 setInterval(async () => {
   try {
     await client.ping();
@@ -33,7 +33,7 @@ setInterval(async () => {
   }
 }, 10000);
 
-// ✅ Connect client safely
+//   Connect client safely
 (async () => {
   try {
     await client.connect();

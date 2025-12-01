@@ -52,7 +52,7 @@ const Positions = () => {
     }).format(num);
   };
 
-  // ✅ Calculations
+  //   Calculations
   const totalInvestment = positions.reduce(
     (sum, stock) => sum + stock.quantity * stock.purchasePrice,
     0

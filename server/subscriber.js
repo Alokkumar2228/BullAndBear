@@ -8,7 +8,7 @@ import { getUsdInrRate } from "./utils/forex.js";
 
 dotenv.config();
 
-// ✅ MongoDB connection with retry logic
+//   MongoDB connection with retry logic
 async function connectMongoDB(retries = 5, delay = 3000) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -16,7 +16,7 @@ async function connectMongoDB(retries = 5, delay = 3000) {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
-      console.log("✅ MongoDB connected");
+      console.log("  MongoDB connected");
       return;
     } catch (error) {
       console.error(`❌ MongoDB connection failed (${i + 1}/${retries}):`, error.message);
@@ -33,7 +33,7 @@ async function connectMongoDB(retries = 5, delay = 3000) {
 
 await connectMongoDB();
 
-// ✅ Redis connection with auto-reconnect
+//   Redis connection with auto-reconnect
 async function connectRedis() {
   const subscriber = createClient({
     username: process.env.REDIS_USERNAME,
@@ -48,7 +48,7 @@ async function connectRedis() {
     },
   });
 
-  subscriber.on("connect", () => console.log("✅ Redis Subscriber Client Connected"));
+  subscriber.on("connect", () => console.log("  Redis Subscriber Client Connected"));
   subscriber.on("error", (err) => console.error("❌ Redis Subscriber Client Error:", err));
 
   // Auto reconnect handling for ECONNRESET
@@ -59,7 +59,7 @@ async function connectRedis() {
 
   await subscriber.connect();
 
-  // ✅ Subscribe once after connection
+  //   Subscribe once after connection
   await subscriber.subscribe("stockSold", async (message) => {
     try {
       const data = JSON.parse(message);

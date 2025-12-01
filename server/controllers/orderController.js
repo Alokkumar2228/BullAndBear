@@ -1,16 +1,14 @@
 import Order from "../models/OrderModel.js";
 import User from "../models/UserModel.js";
 import { getUsdInrRate } from "../utils/forex.js";
-import yahooFinance from "yahoo-finance2";
+import YahooFinance from "yahoo-finance2";
 import client from "../utils/redisclient.js";
 import userallOrder from "../models/userOrderModel.js";
 import mongoose from "mongoose";
 import { sellSchema } from "../zod/sellStockSchema.js";
 
 
-// `yahoo-finance2` exports functions (not a constructor). Use the imported
-// module directly (it exposes `quote`, `chart`, etc.).
-// Logging utility
+const yahooFinance = new YahooFinance();
 const isDevelopment = process.env.NODE_ENV === "development";
 const logger = {
   debug: (...args) => isDevelopment && console.log(...args),
@@ -48,7 +46,7 @@ const isWithinMarketHours = () => {
 };
 
 
-// ✅ Create Order Controller
+//  Create Order Controller
 export const createOrder = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -74,14 +72,14 @@ export const createOrder = async (req, res) => {
       currency = "USD",
     } = req.body;
 
-    // ✅ Validate input
+    //  Validate input
     if (!symbol || !mode || !quantity || !purchasePrice || !actualPrice || !name || !changePercent) {
       await session.abortTransaction();
       await session.endSession();
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // ✅ Numeric conversions
+    //  Numeric conversions
     const numericQuantity = Number(quantity);
     const numericPurchasePrice = Number(purchasePrice);
     const numericActualPrice = Number(actualPrice);
@@ -92,11 +90,11 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Invalid numeric values" });
     }
 
-    // ✅ Calculate amount
+    //  Calculate amount
     const priceToUse = orderMode === "LIMIT" ? numericPurchasePrice : numericActualPrice;
     const totalAmount = numericQuantity * priceToUse;
 
-    // ✅ Find user
+    //   Find user
     const user = await User.findOne({ user_id: userId }).session(session);
     if (!user) {
       await session.abortTransaction();
@@ -104,13 +102,13 @@ export const createOrder = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // ✅ Currency conversion
+    //   Currency conversion
     const usdInrRate = await getUsdInrRate();
     const baseAmountInInr = currency.toUpperCase() === "USD"
       ? totalAmount * usdInrRate
       : totalAmount;
 
-    // ✅ Calculate margin requirement based on order type
+    //   Calculate margin requirement based on order type
     // For INTRADAY: 2x margin (50% of total value)
     // For DELIVERY and FNO: Full amount required
     let requiredAmountInInr;
@@ -120,7 +118,7 @@ export const createOrder = async (req, res) => {
       requiredAmountInInr = baseAmountInInr; // Full amount for other order types
     }
 
-    // ✅ Balance check
+    //   Balance check
     if (user.balance < requiredAmountInInr) {
       await session.abortTransaction();
       await session.endSession();
@@ -131,7 +129,7 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // // ✅ Intraday validation
+    // //   Intraday validation
     if (orderType === "INTRADAY" && !isWithinMarketHours()) {
       await session.abortTransaction();
       await session.endSession();
@@ -140,7 +138,7 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // ✅ Base order object
+    //   Base order object
     const baseOrder = {
       userId,
       orderId: `ORD-${Date.now()}`,
@@ -159,7 +157,7 @@ export const createOrder = async (req, res) => {
       executedAt: new Date(),
     };
 
-    // ✅ Create orders
+    //   Create orders
     const allOrdersEntry = new userallOrder(baseOrder);
     const userSpecificOrder = new Order({
       ...baseOrder,
@@ -173,12 +171,12 @@ export const createOrder = async (req, res) => {
     await allOrdersEntry.save({ session });
     await userSpecificOrder.save({ session });
 
-    // ✅ Deduct balance
+    //   Deduct balance
     user.balance = Number(user.balance) - requiredAmountInInr;
     user.investedAmount = (user.investedAmount || 0) + requiredAmountInInr;
     await user.save({ session });
 
-    // ✅ Commit transaction
+    //   Commit transaction
     await session.commitTransaction();
     await session.endSession();
 
