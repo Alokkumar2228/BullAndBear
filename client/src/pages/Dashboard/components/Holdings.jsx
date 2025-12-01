@@ -3,7 +3,6 @@ import "./dashboard.css";
 import { GeneralContext } from "./GeneralContext";
 
 const Holdings = () => {
-
   const {
     holdings,
     holdingsLoading,
@@ -102,7 +101,7 @@ const Holdings = () => {
       {/* Error */}
       {holdingsError && (
         <div style={{ color: "red", marginBottom: "20px" }}>
-          {holdingsError} {" "}
+          {holdingsError}{" "}
           <button
             onClick={getUserHoldings}
             style={{
@@ -165,16 +164,47 @@ const Holdings = () => {
                   <tr key={stock.symbol}>
                     <td style={{ padding: "8px" }}>{stock.symbol}</td>
                     <td style={{ padding: "8px" }}>{stock.quantity}</td>
-                    <td style={{ padding: "8px" }}>{formatNumber(stock.purchasePrice)}</td>
-                    <td style={{ padding: "8px" }}>{formatNumber(stock.actualPrice)}</td>
+                    <td style={{ padding: "8px" }}>
+                      {formatNumber(stock.purchasePrice)}
+                    </td>
+                    <td style={{ padding: "8px" }}>
+                      {formatNumber(stock.actualPrice)}
+                    </td>
                     <td style={{ padding: "8px" }}>{formatNumber(curValue)}</td>
-                    <td style={{ padding: "8px", color: isProfit ? "green" : "red" }}>{formatNumber(profitValue)}</td>
-                    <td style={{ padding: "8px", color: isProfit ? "green" : "red" }}>{(((stock.actualPrice - stock.purchasePrice) / stock.purchasePrice) * 100).toFixed(2)}%</td>
-                    <td style={{ padding: "8px", color: stock.changePercent >= 0 ? "green" : "red" }}>{stock.changePercent.toFixed(2)}%</td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        color: isProfit ? "green" : "red",
+                      }}
+                    >
+                      {formatNumber(profitValue)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        color: isProfit ? "green" : "red",
+                      }}
+                    >
+                      {(
+                        ((stock.actualPrice - stock.purchasePrice) /
+                          stock.purchasePrice) *
+                        100
+                      ).toFixed(2)}
+                      %
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        color: stock.changePercent >= 0 ? "green" : "red",
+                      }}
+                    >
+                      {stock.changePercent.toFixed(2)}%
+                    </td>
                     <td style={{ padding: "8px" }}>
                       <button
                         style={{
-                          background: "linear-gradient(135deg,#f30909 0%,#e80606 100%)",
+                          background:
+                            "linear-gradient(135deg,#f30909 0%,#e80606 100%)",
                           color: "white",
                           border: "1px solid #f4511e",
                           borderRadius: "6px",
@@ -414,30 +444,27 @@ const Holdings = () => {
                   gap: "8px",
                 }}
                 onClick={() => {
-                  // --- Market hours validation ---
+                  // Compute IST reliably from current UTC time (avoid locale string parsing)
                   const now = new Date();
-                  const day = now.getDay(); // 0=Sun, 6=Sat
-                  const hour = now.getHours();
-                  const minutes = now.getMinutes();
+                  const utcMillis = now.getTime() + now.getTimezoneOffset() * 60000;
+                  const istOffsetMinutes = 5 * 60 + 30; // IST = UTC +5:30
+                  const istNow = new Date(utcMillis + istOffsetMinutes * 60000);
 
-                  let marketOpen = true;
-                  if (day === 0 || day === 6) {
-                    marketOpen = false;
-                  } else {
-                    const openMinutes = 9 * 60 + 30; // 9:30
-                    const closeMinutes = 16 * 60; // 16:00
-                    const currentMinutes = hour * 60 + minutes;
-                    if (
-                      currentMinutes < openMinutes ||
-                      currentMinutes > closeMinutes
-                    ) {
-                      marketOpen = false;
-                    }
-                  }
+                  const day = istNow.getDay(); // 0=Sun, 6=Sat
+                  const hour = istNow.getHours();
+                  const minutes = istNow.getMinutes();
+
+                  // Market hours (IST) — enforce strictly: Mon–Fri, 9:15 AM to 3:30 PM
+                  const openMinutes = 9 * 60 + 15; // 9:15 AM IST
+                  const closeMinutes = 15 * 60 + 30; // 3:30 PM IST
+                  const currentMinutes = hour * 60 + minutes;
+
+                  const isWeekend = day === 0 || day === 6;
+                  const marketOpen = !isWeekend && currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
 
                   if (!marketOpen) {
                     setShowMarketClosedMsg(true);
-                    return;
+                    return; // don't proceed with sell when market is closed
                   }
 
                   setShowMarketClosedMsg(false);

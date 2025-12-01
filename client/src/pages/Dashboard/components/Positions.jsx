@@ -2,16 +2,15 @@ import React, { useState, useEffect, useContext } from "react";
 import { GeneralContext } from "./GeneralContext";
 
 const Positions = () => {
-
-  const { 
+  const {
     positions,
     positionLoading,
     positionsError,
     getUserPositions,
     handleSellStock,
-    findUserFundsData, 
+    findUserFundsData,
   } = useContext(GeneralContext);
- 
+
   const [isSell, setIsSell] = useState(false);
   const [selectedStock, setSelectedStock] = useState(null);
   const [quantity, setQuantity] = useState(0);
@@ -21,7 +20,6 @@ const Positions = () => {
   useEffect(() => {
     getUserPositions();
   }, [getUserPositions]);
-
 
   const handleSell = (stock) => {
     setIsSell(true);
@@ -53,7 +51,6 @@ const Positions = () => {
       maximumFractionDigits: 2,
     }).format(num);
   };
-
 
   // ✅ Calculations
   const totalInvestment = positions.reduce(
@@ -162,11 +159,13 @@ const Positions = () => {
             </thead>
             <tbody>
               {positions.map((stock, index) => {
-               
-                
                 const curValue = stock.quantity * stock.actualPrice;
                 const profitValue =
-                  (stock.actualPrice - (stock.purchasePrice == stock.actualPrice/2 ? stock.purchasePrice*2: stock.purchasePrice)) * stock.quantity;   
+                  (stock.actualPrice -
+                    (stock.purchasePrice == stock.actualPrice / 2
+                      ? stock.purchasePrice * 2
+                      : stock.purchasePrice)) *
+                  stock.quantity;
                 const isProfit = profitValue >= 0;
 
                 return (
@@ -176,10 +175,11 @@ const Positions = () => {
                     >{`${stock.symbol} - ${stock.name}`}</td>
                     <td style={{ padding: "8px" }}>{stock.quantity}</td>
                     <td style={{ padding: "8px" }}>
-                      {formatNumber(stock.orderMode == "LIMIT" ? stock.purchasePrice : stock.actualPrice)}
-                    
-                      
-  
+                      {formatNumber(
+                        stock.orderMode == "LIMIT"
+                          ? stock.purchasePrice
+                          : stock.actualPrice
+                      )}
                     </td>
                     <td
                       style={{
@@ -208,11 +208,13 @@ const Positions = () => {
                     >
                       {/* {(stock.orderMode == "LIMIT" ? (((stock.actualPrice - stock.purchasePrice) / (stock.actualPrice)) * 100).toFixed(2) : (stock.actualPrice - (stock.purchasePrice*2)) / (stock.purchasePrice) * 100).toFixed(2)} % */}
                       {(
-                        ((stock.actualPrice - (stock.purchasePrice == stock.actualPrice/2 ? stock.purchasePrice*2: stock.purchasePrice)) /
+                        ((stock.actualPrice -
+                          (stock.purchasePrice == stock.actualPrice / 2
+                            ? stock.purchasePrice * 2
+                            : stock.purchasePrice)) /
                           stock.purchasePrice) *
                         100
                       ).toFixed(2)}
-                      
                     </td>
                     <td
                       style={{
@@ -473,30 +475,27 @@ const Positions = () => {
                   gap: "8px",
                 }}
                 onClick={() => {
-                  // --- Market hours validation ---
+                  // Compute IST reliably from current UTC time (avoid locale parsing)
                   const now = new Date();
-                  const day = now.getDay(); // 0=Sun, 6=Sat
-                  const hour = now.getHours();
-                  const minutes = now.getMinutes();
+                  const utcMillis = now.getTime() + now.getTimezoneOffset() * 60000;
+                  const istOffsetMinutes = 5 * 60 + 30; // IST = UTC +5:30
+                  const istNow = new Date(utcMillis + istOffsetMinutes * 60000);
 
-                  let marketOpen = true;
-                  if (day === 0 || day === 6) {
-                    marketOpen = false;
-                  } else {
-                    const openMinutes = 9 * 60 + 30; // 9:30
-                    const closeMinutes = 16 * 60; // 16:00
-                    const currentMinutes = hour * 60 + minutes;
-                    if (
-                      currentMinutes < openMinutes ||
-                      currentMinutes > closeMinutes
-                    ) {
-                      marketOpen = false;
-                    }
-                  }
+                  const day = istNow.getDay(); // 0=Sun, 6=Sat
+                  const hour = istNow.getHours();
+                  const minutes = istNow.getMinutes();
+
+                  // Market hours (IST) — enforce: Mon–Fri, 9:15 AM to 3:30 PM
+                  const openMinutes = 9 * 60 + 15; // 9:15 AM IST
+                  const closeMinutes = 15 * 60 + 30; // 3:30 PM IST
+                  const currentMinutes = hour * 60 + minutes;
+
+                  const isWeekend = day === 0 || day === 6;
+                  const marketOpen = !isWeekend && currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
 
                   if (!marketOpen) {
                     setShowMarketClosedMsg(true);
-                    return;
+                    return; // block sell when market closed
                   }
 
                   setShowMarketClosedMsg(false);

@@ -286,10 +286,5 @@ const withdrawOrder = async(req,res) =>{
 
 }
 
-
-
-
-
 export {createOrder,verifyPayment,capturePayment,getTransactionData,withdrawOrder};
-
 
