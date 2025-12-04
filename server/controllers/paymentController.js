@@ -247,7 +247,7 @@ const getTransactionData = async (req, res) => {
         mode: 1,
       }
     )
-      .sort({ createdAt: -1 }); // 👈 Sort by date descending (newest first)
+      .sort({ createdAt: -1 }); 
 
     res.status(200).json({ success: true, transactions });
   } catch (error) {

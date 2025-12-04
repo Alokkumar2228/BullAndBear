@@ -10,8 +10,8 @@ const client = twilio(accountSid, authToken);
 export const sendPaymentSMS = async (to, amount) => {
   try {
     const message = await client.messages.create({
-      body: `Hi! Your payment of ₹${amount} has been deducted from your bank account.`,
-      messagingServiceSid, // Your Messaging Service SID
+      body: `Hi! Your payment of ₹${amount} has been successfully processed and credited to your BullAndBear account.`,
+      messagingServiceSid, 
       to,
     });
     // console.log("SMS sent successfully:", message.sid);
